@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 )
@@ -49,16 +51,28 @@ func (a *App) initHttpServer(ctx context.Context) {
 }
 
 func (a *App) Run() error {
-	err := a.runHttpServer()
-	if err != nil {
-		return err
-	}
+	defer func() {
+		closer.CloseAll()
+		closer.Wait()
+	}()
+
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+
+		err := a.runHttpServer()
+		if err != nil {
+			log.Fatalf("error running http server: %v", err)
+		}
+	}()
+	a.wg.Wait()
 
 	return nil
 }
 
 func (a *App) runHttpServer() error {
-	log.Println("starting http server...")
+	slog.Info("starting http server...")
+
 	err := a.httpServer.ListenAndServe()
 	if err != nil {
 		return err
