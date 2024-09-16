@@ -10,7 +10,6 @@ import (
 
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/jackc/pgx/v5"
 )
 
 // TODO: add yookassa data table
