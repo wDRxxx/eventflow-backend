@@ -43,7 +43,6 @@ func New(sig ...os.Signal) *Closer {
 			c.CloseAll()
 		}()
 	}
-
 	return c
 }
 
@@ -87,6 +86,6 @@ func (c *Closer) CloseAll() {
 		}
 
 		wg.Wait()
-		os.Exit(1)
+		os.Exit(0)
 	})
 }

@@ -23,12 +23,7 @@ func SetupLogger(envLevel string, logsPath string) {
 		if err != nil {
 			log.Fatalf("error creating new log file: %v", err)
 		}
-		closer.Add(func() error {
-			log.Println("closing log file")
-			time.Sleep(5 * time.Second)
-			err := f.Close()
-			return err
-		})
+		closer.Add(f.Close)
 
 		logger = slog.New(slog.NewJSONHandler(f, &slog.HandlerOptions{
 			Level:     slog.LevelInfo,
