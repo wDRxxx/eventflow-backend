@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS "users" (
     "id" INTEGER NOT NULL UNIQUE,
     "email" VARCHAR NOT NULL,
     "password" VARCHAR NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     PRIMARY KEY("id", "email")
 );
 
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE IF NOT EXISTS "events" (
     "id" INTEGER NOT NULL UNIQUE,
     "title" VARCHAR NOT NULL,
     "capacity" INTEGER NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS events (
     PRIMARY KEY("id")
 );
 
-CREATE TABLE IF NOT EXISTS prices (
+CREATE TABLE IF NOT EXISTS "prices" (
     "id" INTEGER NOT NULL UNIQUE,
     "event_id" INTEGER NOT NULL,
     "price" INTEGER NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS prices (
     PRIMARY KEY("id")
 );
 
-CREATE TABLE IF NOT EXISTS tickets (
+CREATE TABLE IF NOT EXISTS "tickets" (
     "id" VARCHAR NOT NULL UNIQUE,
     "user_id" INTEGER NOT NULL,
     "event_id" INTEGER NOT NULL,
@@ -43,12 +43,15 @@ CREATE TABLE IF NOT EXISTS tickets (
 ALTER TABLE "prices"
     ADD FOREIGN KEY("event_id") REFERENCES "events"("id")
         ON UPDATE NO ACTION ON DELETE CASCADE;
+
 ALTER TABLE "events"
     ADD FOREIGN KEY("creator_id") REFERENCES "users"("id")
         ON UPDATE NO ACTION ON DELETE CASCADE;
+
 ALTER TABLE "tickets"
     ADD FOREIGN KEY("user_id") REFERENCES "users"("id")
         ON UPDATE NO ACTION ON DELETE CASCADE;
+
 ALTER TABLE "tickets"
     ADD FOREIGN KEY("event_id") REFERENCES "events"("id")
         ON UPDATE NO ACTION ON DELETE CASCADE;
