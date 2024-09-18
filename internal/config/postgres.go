@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 )
 
 type PostgresConfig struct {
@@ -11,6 +13,7 @@ type PostgresConfig struct {
 	User     string
 	Password string
 	Database string
+	Timeout  time.Duration
 }
 
 func NewPostgresConfig() *PostgresConfig {
@@ -39,12 +42,23 @@ func NewPostgresConfig() *PostgresConfig {
 		panic("POSTGRES_DB environment variable is empty")
 	}
 
+	timeout := os.Getenv("POSTGRES_TIMEOUT")
+	if timeout == "" {
+		panic("POSTGRES_TIMEOUT environment variable is empty")
+	}
+
+	t, err := strconv.Atoi(timeout)
+	if err != nil {
+		panic("POSTGRES_TIMEOUT must be an integer")
+	}
+
 	return &PostgresConfig{
 		Host:     host,
 		Port:     port,
 		User:     user,
 		Password: password,
 		Database: database,
+		Timeout:  time.Duration(t) * time.Second,
 	}
 }
 

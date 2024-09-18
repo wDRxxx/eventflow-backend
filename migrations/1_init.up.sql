@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "created_at" TIMESTAMP NOT NULL,
     "updated_at" TIMESTAMP NOT NULL,
     "tg_username" VARCHAR,
-    PRIMARY KEY("id", "email")
+    PRIMARY KEY("id")
 );
 
 CREATE TABLE IF NOT EXISTS "events" (

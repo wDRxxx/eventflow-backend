@@ -52,7 +52,7 @@ func (s *serviceProvider) Repository(ctx context.Context) repository.Repository 
 			log.Fatalf("error connecting to database: %v", err)
 		}
 
-		s.repository = postgres.NewPostgresRepo(db)
+		s.repository = postgres.NewPostgresRepo(db, s.PostgresConfig().Timeout)
 	}
 
 	return s.repository
