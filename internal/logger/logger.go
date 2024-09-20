@@ -2,11 +2,15 @@ package logger
 
 import (
 	"fmt"
-	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"log"
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/cappuccinotm/slogx"
+	"github.com/cappuccinotm/slogx/slogm"
+
+	"github.com/wDRxxx/eventflow-backend/internal/closer"
 )
 
 func SetupLogger(envLevel string, logsPath string) {
@@ -25,10 +29,13 @@ func SetupLogger(envLevel string, logsPath string) {
 		}
 		closer.Add(f.Close)
 
-		logger = slog.New(slog.NewJSONHandler(f, &slog.HandlerOptions{
-			Level:     slog.LevelInfo,
-			AddSource: true,
-		}))
+		h := slog.NewJSONHandler(f, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+
+		logger = slog.New(slogx.Accumulator(slogx.NewChain(h,
+			slogm.StacktraceOnError(),
+		)))
 	}
 
 	slog.SetDefault(logger)

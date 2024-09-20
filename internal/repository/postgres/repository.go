@@ -2,11 +2,14 @@ package postgres
 
 import (
 	"context"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
-	"time"
+	"github.com/wDRxxx/eventflow-backend/internal/utils"
 )
 
 type repo struct {
@@ -18,8 +21,10 @@ const (
 	usersTable            = "users"
 	eventsTable           = "events"
 	pricesTable           = "prices"
-	TicketsTable          = "tickets"
+	ticketsTable          = "tickets"
 	yookassaSettingsTable = "users_yookassa_settings"
+
+	structTag = "db"
 )
 
 func NewPostgresRepo(db *pgxpool.Pool, timeout time.Duration) repository.Repository {
@@ -34,6 +39,7 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 	defer cancel()
 
 	builder := sq.Select(
+		"id",
 		"title",
 		"description",
 		"capacity",
@@ -43,7 +49,7 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 		"is_public",
 		"location",
 		"is_free",
-		"preview_image",
+		"coalesce(preview_image, '') as preview_image",
 		"utc_offset",
 		"created_at",
 		"updated_at",
@@ -60,6 +66,7 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 	var event models.Event
 
 	err = row.Scan(
+		&event.ID,
 		&event.Title,
 		&event.Description,
 		&event.Capacity,
@@ -78,42 +85,44 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 		return nil, err
 	}
 
-	builder = sq.Select(
-		"id",
-		"price",
-		"currency",
-		"created_at",
-		"updated_at",
-	).From(pricesTable).
-		Where(sq.Eq{"event_id": event.ID})
+	if !event.IsFree {
+		builder = sq.Select(
+			"id",
+			"price",
+			"currency",
+			"created_at",
+			"updated_at",
+		).From(pricesTable).
+			Where(sq.Eq{"event_id": event.ID})
 
-	sql, args, err = builder.ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := r.db.Query(ctx, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var price models.Price
-		err = rows.Scan(
-			&price.Price,
-			&price.Currency,
-			&price.CreatedAt,
-			&price.UpdatedAt,
-		)
+		sql, args, err = builder.ToSql()
 		if err != nil {
 			return nil, err
 		}
 
-		event.Prices = append(event.Prices, &price)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
+		rows, err := r.db.Query(ctx, sql, args...)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var price models.Price
+			err = rows.Scan(
+				&price.Price,
+				&price.Currency,
+				&price.CreatedAt,
+				&price.UpdatedAt,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			event.Prices = append(event.Prices, &price)
+		}
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &event, nil
@@ -137,23 +146,7 @@ func (r *repo) InsertEvent(ctx context.Context, event *models.Event) (id int64, 
 		err = tx.Commit(ctx)
 	}()
 
-	m := make(map[string]interface{})
-	m["title"] = event.Title
-	m["url_title"] = event.URLTitle
-	m["description"] = event.Description
-	m["beginning_time"] = event.BeginningTime
-	m["end_time"] = event.EndTime
-	m["creator_id"] = event.CreatorID
-	m["is_public"] = event.IsPublic
-	m["location"] = event.Location
-	m["is_free"] = event.IsFree
-	m["utc_offset"] = event.UTCOffset
-	m["capacity"] = event.Capacity
-	m["minimal_age"] = event.MinimalAge
-
-	if event.PreviewImage != "" {
-		m["preview_image"] = event.PreviewImage
-	}
+	m, err := utils.MapByStructTags(structTag, *event)
 
 	builder := sq.Insert(eventsTable).
 		SetMap(m).
@@ -170,39 +163,111 @@ func (r *repo) InsertEvent(ctx context.Context, event *models.Event) (id int64, 
 		return 0, err
 	}
 
-	builder = sq.Insert(pricesTable).
-		Columns("event_id", "price", "currency")
+	if !event.IsFree {
+		builder = sq.Insert(pricesTable).
+			Columns("event_id", "price", "currency")
 
-	for _, p := range event.Prices {
-		builder = builder.Values(id, p.Price, p.Currency)
-	}
-	builder.PlaceholderFormat(sq.Dollar)
+		for _, p := range event.Prices {
+			builder = builder.Values(id, p.Price, p.Currency)
+		}
+		builder = builder.PlaceholderFormat(sq.Dollar)
 
-	sql, args, err = builder.ToSql()
-	if err != nil {
-		return 0, err
-	}
+		sql, args, err = builder.ToSql()
+		if err != nil {
+			return 0, err
+		}
 
-	_, err = tx.Exec(ctx, sql, args...)
-	if err != nil {
-		return 0, err
+		_, err = tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return id, nil
 }
 
+func (r *repo) UpdateEvent(ctx context.Context, event *models.Event) error {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	m, err := utils.MapByStructTags(structTag, *event)
+	if err != nil {
+		return err
+	}
+
+	builder := sq.Update(eventsTable).
+		SetMap(m).
+		Where(sq.Eq{"url_title": event.URLTitle}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builder.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *repo) DeleteEvent(ctx context.Context, urlTitle string) error {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	builder := sq.Delete(eventsTable).
+		Where(sq.Eq{"url_title": urlTitle}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builder.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//
+
+func (r *repo) InsertTicket(ctx context.Context, ticket *models.Ticket) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	m, err := utils.MapByStructTags(structTag, *ticket)
+
+	builder := sq.Insert(ticketsTable).
+		SetMap(m).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builder.ToSql()
+	if err != nil {
+		return "", err
+	}
+
+	_, err = r.db.Exec(ctx, sql, args...)
+	if err != nil {
+		return "", err
+	}
+
+	return ticket.ID, nil
+}
+
+//
+
 func (r *repo) InsertUser(ctx context.Context, user *models.User) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	m := make(map[string]interface{})
-	m["email"] = user.Email
-	m["password"] = user.Password
-	m["created_at"] = time.Now()
-	m["updated_at"] = time.Now()
-
-	if user.TGUsername != "" {
-		m["tg_username"] = user.TGUsername
+	m, err := utils.MapByStructTags(structTag, *user)
+	if err != nil {
+		return 0, err
 	}
 
 	builder := sq.Insert(usersTable).
@@ -228,9 +293,10 @@ func (r *repo) InsertYookassaSettings(ctx context.Context, settings *models.Yook
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
+	m, err := utils.MapByStructTags(structTag, *settings)
+
 	builder := sq.Insert(yookassaSettingsTable).
-		Columns("user_id", "shop_id", "shop_key").
-		Values(settings.UserID, settings.ShopID, settings.ShopKey).
+		SetMap(m).
 		Suffix("RETURNING id").
 		PlaceholderFormat(sq.Dollar)
 

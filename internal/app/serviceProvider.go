@@ -5,6 +5,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wDRxxx/eventflow-backend/internal/api"
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
+	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/postgres"
@@ -47,6 +48,11 @@ func (s *serviceProvider) Repository(ctx context.Context) repository.Repository 
 		if err != nil {
 			log.Fatalf("error connecting to database: %v", err)
 		}
+		closer.Add(func() error {
+			db.Close()
+			return nil
+		})
+
 		err = db.Ping(ctx)
 		if err != nil {
 			log.Fatalf("error connecting to database: %v", err)

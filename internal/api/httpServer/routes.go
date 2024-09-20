@@ -12,6 +12,13 @@ func (s *server) setRoutes() {
 
 	mux.Route("/api", func(mux chi.Router) {
 		mux.Get("/", s.home)
+
+		mux.Route("/events", func(mux chi.Router) {
+			mux.Get("/{url-title}", s.event)
+			mux.Post("/", s.createEvent)
+			mux.Put("/{url-title}", s.updateEvent)
+			mux.Delete("/{url-title}", s.deleteEvent)
+		})
 	})
 
 	s.mux = mux

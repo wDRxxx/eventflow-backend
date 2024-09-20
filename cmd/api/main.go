@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
+
 	"github.com/wDRxxx/eventflow-backend/internal/app"
 	"github.com/wDRxxx/eventflow-backend/internal/logger"
-	"log"
 )
 
 var envPath, envLevel, logsPath string
 
 func init() {
 	flag.StringVar(&envPath, "env-path", ".env", "path to .env file")
-	flag.StringVar(&envLevel, "env-level", "dev", "dev/prod")
+	flag.StringVar(&envLevel, "env-level", "prod", "dev/prod")
 	flag.StringVar(&logsPath, "logs-path", "./logs", "path to folder with logs")
 
 	flag.Parse()

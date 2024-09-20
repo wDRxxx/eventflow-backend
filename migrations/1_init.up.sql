@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS "users" (
-    "id" INTEGER NOT NULL UNIQUE,
+    "id" SERIAL NOT NULL UNIQUE,
     "email" VARCHAR NOT NULL,
     "password" VARCHAR NOT NULL,
     "created_at" TIMESTAMP NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 );
 
 CREATE TABLE IF NOT EXISTS "events" (
-    "id" INTEGER NOT NULL UNIQUE,
+    "id" SERIAL NOT NULL UNIQUE,
     "title" VARCHAR NOT NULL,
     "capacity" INTEGER NOT NULL,
     "description" TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS "events" (
 );
 
 CREATE TABLE IF NOT EXISTS "prices" (
-    "id" INTEGER NOT NULL UNIQUE,
+    "id" SERIAL NOT NULL UNIQUE,
     "event_id" INTEGER NOT NULL,
     "price" INTEGER NOT NULL,
     "currency" VARCHAR NOT NULL,

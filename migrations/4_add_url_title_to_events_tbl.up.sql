@@ -1,2 +1,2 @@
 ALTER TABLE "events"
-ADD COLUMN url_title VARCHAR NOT NULL default '';
+ADD COLUMN url_title VARCHAR UNIQUE NOT NULL default '';
