@@ -2,8 +2,10 @@ package apiService
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -59,7 +61,7 @@ func (s *serv) CreteEvent(ctx context.Context, event *models.Event) (int64, erro
 	return id, nil
 }
 
-func (s *serv) UpdateEvent(ctx context.Context, event *models.Event) error {
+func (s *serv) UpdateEvent(ctx context.Context, userID int64, event *models.Event) error {
 	event.UpdatedAt = time.Now()
 	err := s.repo.UpdateEvent(ctx, event)
 	if err != nil {
@@ -69,8 +71,17 @@ func (s *serv) UpdateEvent(ctx context.Context, event *models.Event) error {
 	return nil
 }
 
-func (s *serv) DeleteEvent(ctx context.Context, urlTitle string) error {
-	err := s.repo.DeleteEvent(ctx, urlTitle)
+func (s *serv) DeleteEvent(ctx context.Context, userID int64, urlTitle string) error {
+	event, err := s.repo.EventByURLTitle(ctx, urlTitle)
+	if err != nil {
+		return err
+	}
+
+	if event.CreatorID != userID {
+		return service.ErrPermissionDenied
+	}
+
+	err = s.repo.DeleteEvent(ctx, urlTitle)
 	if err != nil {
 		return err
 	}
@@ -121,7 +132,12 @@ func (s *serv) Login(ctx context.Context, user *models.User) (string, error) {
 	}
 
 	accessToken, err := utils.GenerateToken(
-		u.Email,
+		&models.UserClaims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject: fmt.Sprint(u.ID),
+			},
+			Email: u.Email,
+		},
 		s.authConfig.RefreshTokenSecret,
 		s.authConfig.RefreshTokenTTL,
 	)
@@ -139,7 +155,7 @@ func (s *serv) AccessToken(ctx context.Context, refreshToken string) (string, er
 	}
 
 	accessToken, err := utils.GenerateToken(
-		claims.Subject,
+		claims,
 		s.authConfig.AccessTokenSecret,
 		s.authConfig.AccessTokenTTL,
 	)

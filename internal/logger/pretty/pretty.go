@@ -1,4 +1,5 @@
 // edited version of https://github.com/go-slog-handler/slog-handler
+// to be compatible with https://github.com/cappuccinotm/slogx
 
 package pretty
 

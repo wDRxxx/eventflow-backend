@@ -9,13 +9,14 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 )
 
-func GenerateToken(email string, secretKey string, duration time.Duration) (string, error) {
+func GenerateToken(user *models.UserClaims, secretKey string, duration time.Duration) (string, error) {
 	claims := models.UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "EventFlow",
-			Subject:   email,
+			Subject:   user.Subject,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		},
+		Email: user.Email,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

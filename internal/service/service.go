@@ -9,8 +9,8 @@ import (
 type ApiService interface {
 	Event(ctx context.Context, urlTitle string) (*models.Event, error)
 	CreteEvent(ctx context.Context, event *models.Event) (int64, error)
-	DeleteEvent(ctx context.Context, urlTitle string) error
-	UpdateEvent(ctx context.Context, event *models.Event) error
+	DeleteEvent(ctx context.Context, userID int64, urlTitle string) error
+	UpdateEvent(ctx context.Context, userID int64, event *models.Event) error
 
 	Ticket(ctx context.Context, ticketID string) (*models.Ticket, error)
 

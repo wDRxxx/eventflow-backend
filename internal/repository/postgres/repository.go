@@ -390,7 +390,7 @@ func (r *repo) User(ctx context.Context, userEmail string) (*models.User, error)
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	builder := sq.Select("email", "password").
+	builder := sq.Select("id", "email", "password").
 		From(usersTable).
 		Where(sq.Eq{"email": userEmail}).
 		PlaceholderFormat(sq.Dollar)
@@ -402,7 +402,7 @@ func (r *repo) User(ctx context.Context, userEmail string) (*models.User, error)
 
 	var user models.User
 	err = r.db.QueryRow(ctx, sql, args...).
-		Scan(&user.Email, &user.Password)
+		Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		return nil, err
 	}

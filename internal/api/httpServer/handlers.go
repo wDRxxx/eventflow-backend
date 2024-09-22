@@ -3,6 +3,7 @@ package httpServer
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -47,6 +48,22 @@ func (s *server) createEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		slog.Error("Error converting claims.Subject to int", slog.Any("error", err), slog.String("subject", claims.Subject))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	event.CreatorID = int64(id)
+
 	_, err = s.apiService.CreteEvent(r.Context(), &event)
 	if err != nil {
 		if errors.Is(err, service.ErrNoPrices) || errors.Is(err, service.ErrPricesForFree) {
@@ -66,17 +83,24 @@ func (s *server) createEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) updateEvent(w http.ResponseWriter, r *http.Request) {
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+	id, err := strconv.Atoi(claims.Subject)
 	urlTitle := chi.URLParam(r, "url-title")
-	event := models.Event{URLTitle: urlTitle}
 
-	err := utils.ReadJSON(w, r, &event)
+	event := models.Event{URLTitle: urlTitle}
+	err = utils.ReadJSON(w, r, &event)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
 		return
 	}
 
-	err = s.apiService.UpdateEvent(r.Context(), &event)
+	err = s.apiService.UpdateEvent(r.Context(), int64(id), &event)
 	if err != nil {
 		slog.Error("Error updating event", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
@@ -90,9 +114,22 @@ func (s *server) updateEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) deleteEvent(w http.ResponseWriter, r *http.Request) {
-	urlTitle := chi.URLParam(r, "url-title")
-	err := s.apiService.DeleteEvent(r.Context(), urlTitle)
+	_, claims, err := s.getAndVerifyHeaderToken(r)
 	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+	id, err := strconv.Atoi(claims.Subject)
+	urlTitle := chi.URLParam(r, "url-title")
+
+	err = s.apiService.DeleteEvent(r.Context(), int64(id), urlTitle)
+	if err != nil {
+		if errors.Is(err, service.ErrPermissionDenied) {
+			utils.WriteJSONError(service.ErrPermissionDenied, w, http.StatusForbidden)
+			return
+		}
+
 		slog.Error("Error deleting event", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
 		return

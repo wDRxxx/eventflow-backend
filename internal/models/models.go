@@ -20,6 +20,7 @@ type User struct {
 
 type UserClaims struct {
 	jwt.RegisteredClaims
+	Email string `json:"email"`
 }
 
 type Event struct {
@@ -30,7 +31,7 @@ type Event struct {
 	BeginningTime time.Time `json:"beginning_time" db:"beginning_time"`
 	EndTime       time.Time `json:"end_time" db:"end_time"`
 	CreatorID     int64     `json:"creator_id,omitempty" db:"creator_id"`
-	IsPublic      bool      `json:"-" db:"is_public"`
+	IsPublic      bool      `json:"is_public" db:"is_public"`
 	Location      string    `json:"location" db:"location"`
 	IsFree        bool      `json:"is_free" db:"is_free"`
 	PreviewImage  string    `json:"preview_image" db:"preview_image"`

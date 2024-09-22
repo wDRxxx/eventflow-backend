@@ -15,9 +15,14 @@ func (s *server) setRoutes() {
 
 		mux.Route("/events", func(mux chi.Router) {
 			mux.Get("/{url-title}", s.event)
-			mux.Post("/", s.createEvent)
-			mux.Put("/{url-title}", s.updateEvent)
-			mux.Delete("/{url-title}", s.deleteEvent)
+
+			mux.Group(func(mux chi.Router) {
+				mux.Use(s.authRequired)
+
+				mux.Post("/", s.createEvent)
+				mux.Put("/{url-title}", s.updateEvent)
+				mux.Delete("/{url-title}", s.deleteEvent)
+			})
 		})
 
 		mux.Route("/tickets", func(mux chi.Router) {
@@ -29,6 +34,7 @@ func (s *server) setRoutes() {
 			mux.Post("/login", s.login)
 			mux.Post("/refresh", s.refresh)
 		})
+
 	})
 
 	s.mux = mux

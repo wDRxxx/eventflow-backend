@@ -43,7 +43,6 @@ func SetupLogger(envLevel string, logsPath string) {
 
 		h := slog.NewJSONHandler(f, &slog.HandlerOptions{
 			Level: slog.LevelWarn,
-			//ReplaceAttr: pretty.
 		})
 
 		logger = slog.New(slogx.Accumulator(slogx.NewChain(h,
