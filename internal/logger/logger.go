@@ -11,6 +11,7 @@ import (
 	"github.com/cappuccinotm/slogx/slogm"
 
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
+	"github.com/wDRxxx/eventflow-backend/internal/logger/pretty"
 )
 
 func SetupLogger(envLevel string, logsPath string) {
@@ -18,7 +19,18 @@ func SetupLogger(envLevel string, logsPath string) {
 
 	switch envLevel {
 	case "dev":
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		h := pretty.NewHandler(
+			os.Stdout,
+			&pretty.Options{
+				Format: "text",
+				Level:  "debug",
+				Pretty: true,
+			},
+		)
+		logger = slog.New(slogx.Accumulator(slogx.NewChain(h,
+			slogm.StacktraceOnError(),
+		)))
+
 	case "prod":
 		t := time.Now().Format("02-01-06T15-04-05")
 		logFilePath := fmt.Sprintf("%s/%s.log", logsPath, t)
@@ -30,7 +42,8 @@ func SetupLogger(envLevel string, logsPath string) {
 		closer.Add(f.Close)
 
 		h := slog.NewJSONHandler(f, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
+			Level: slog.LevelWarn,
+			//ReplaceAttr: pretty.
 		})
 
 		logger = slog.New(slogx.Accumulator(slogx.NewChain(h,

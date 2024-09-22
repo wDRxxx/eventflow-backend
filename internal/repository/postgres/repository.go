@@ -146,7 +146,7 @@ func (r *repo) InsertEvent(ctx context.Context, event *models.Event) (id int64, 
 		err = tx.Commit(ctx)
 	}()
 
-	m, err := utils.MapByStructTags(structTag, *event)
+	m, err := utils.MapByStructTag(structTag, *event)
 
 	builder := sq.Insert(eventsTable).
 		SetMap(m).
@@ -165,12 +165,12 @@ func (r *repo) InsertEvent(ctx context.Context, event *models.Event) (id int64, 
 
 	if !event.IsFree {
 		builder = sq.Insert(pricesTable).
-			Columns("event_id", "price", "currency")
+			Columns("event_id", "price", "currency").
+			PlaceholderFormat(sq.Dollar)
 
 		for _, p := range event.Prices {
 			builder = builder.Values(id, p.Price, p.Currency)
 		}
-		builder = builder.PlaceholderFormat(sq.Dollar)
 
 		sql, args, err = builder.ToSql()
 		if err != nil {
@@ -190,7 +190,30 @@ func (r *repo) UpdateEvent(ctx context.Context, event *models.Event) error {
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	m, err := utils.MapByStructTags(structTag, *event)
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+			return
+		}
+
+		err = tx.Commit(ctx)
+	}()
+
+	err = tx.QueryRow(
+		ctx,
+		"select id from events where url_title = $1",
+		event.URLTitle).
+		Scan(&event.ID)
+	if err != nil {
+		return err
+	}
+
+	m, err := utils.MapByStructTag(structTag, *event)
 	if err != nil {
 		return err
 	}
@@ -205,9 +228,46 @@ func (r *repo) UpdateEvent(ctx context.Context, event *models.Event) error {
 		return err
 	}
 
-	_, err = r.db.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
+	}
+
+	if !event.IsFree {
+		insertBuilder := sq.Insert(pricesTable).
+			Columns("event_id", "price", "currency").
+			PlaceholderFormat(sq.Dollar)
+
+		for _, p := range event.Prices {
+			if p.Price > 0 {
+				insertBuilder = insertBuilder.Values(event.ID, p.Price, p.Currency)
+
+				continue
+			}
+
+			_, err = tx.Exec(
+				ctx,
+				`delete from prices where event_id = $1 and currency = $2`,
+				event.ID,
+				p.Currency,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		insertBuilder = insertBuilder.Suffix(`ON CONFLICT (event_id, currency)
+        DO UPDATE SET price = EXCLUDED.price, updated_at = now()`)
+
+		sql, args, err = insertBuilder.ToSql()
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -240,7 +300,7 @@ func (r *repo) InsertTicket(ctx context.Context, ticket *models.Ticket) (string,
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	m, err := utils.MapByStructTags(structTag, *ticket)
+	m, err := utils.MapByStructTag(structTag, *ticket)
 
 	builder := sq.Insert(ticketsTable).
 		SetMap(m).
@@ -259,13 +319,50 @@ func (r *repo) InsertTicket(ctx context.Context, ticket *models.Ticket) (string,
 	return ticket.ID, nil
 }
 
+func (r *repo) Ticket(ctx context.Context, ticketID string) (*models.Ticket, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	builder := sq.Select(
+		"id",
+		"user_id",
+		"event_id",
+		"is_used",
+		"first_name",
+		"last_name",
+	).
+		From(ticketsTable).
+		Where(sq.Eq{"id": ticketID}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builder.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var ticket models.Ticket
+	err = r.db.QueryRow(ctx, sql, args...).Scan(
+		&ticket.ID,
+		&ticket.UserID,
+		&ticket.EventID,
+		&ticket.IsUsed,
+		&ticket.FirstName,
+		&ticket.LastName,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ticket, nil
+}
+
 //
 
 func (r *repo) InsertUser(ctx context.Context, user *models.User) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	m, err := utils.MapByStructTags(structTag, *user)
+	m, err := utils.MapByStructTag(structTag, *user)
 	if err != nil {
 		return 0, err
 	}
@@ -289,11 +386,35 @@ func (r *repo) InsertUser(ctx context.Context, user *models.User) (int64, error)
 	return id, nil
 }
 
+func (r *repo) User(ctx context.Context, userEmail string) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	builder := sq.Select("email", "password").
+		From(usersTable).
+		Where(sq.Eq{"email": userEmail}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builder.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var user models.User
+	err = r.db.QueryRow(ctx, sql, args...).
+		Scan(&user.Email, &user.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (r *repo) InsertYookassaSettings(ctx context.Context, settings *models.YookassaSettings) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	m, err := utils.MapByStructTags(structTag, *settings)
+	m, err := utils.MapByStructTag(structTag, *settings)
 
 	builder := sq.Insert(yookassaSettingsTable).
 		SetMap(m).

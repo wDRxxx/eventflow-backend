@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"log"
+
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/wDRxxx/eventflow-backend/internal/api"
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
@@ -11,12 +14,12 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/repository/postgres"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 	"github.com/wDRxxx/eventflow-backend/internal/service/apiService"
-	"log"
 )
 
 type serviceProvider struct {
 	httpConfig     *config.HttpConfig
 	postgresConfig *config.PostgresConfig
+	authConfig     *config.AuthConfig
 
 	repository repository.Repository
 	apiService service.ApiService
@@ -40,6 +43,14 @@ func (s *serviceProvider) PostgresConfig() *config.PostgresConfig {
 		s.postgresConfig = config.NewPostgresConfig()
 	}
 	return s.postgresConfig
+}
+
+func (s *serviceProvider) AuthConfig() *config.AuthConfig {
+	if s.authConfig == nil {
+		s.authConfig = config.NewAuthConfig()
+	}
+
+	return s.authConfig
 }
 
 func (s *serviceProvider) Repository(ctx context.Context) repository.Repository {
@@ -66,7 +77,7 @@ func (s *serviceProvider) Repository(ctx context.Context) repository.Repository 
 
 func (s *serviceProvider) ApiService(ctx context.Context) service.ApiService {
 	if s.apiService == nil {
-		s.apiService = apiService.NewApiService(s.Repository(ctx))
+		s.apiService = apiService.NewApiService(s.Repository(ctx), s.AuthConfig())
 	}
 
 	return s.apiService

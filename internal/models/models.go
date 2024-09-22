@@ -1,17 +1,25 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type User struct {
 	ID         int64  `json:"-" db:"id"`
 	Email      string `json:"email" db:"email"`
-	Password   string `json:"-" db:"password"`
+	Password   string `json:"password" db:"password"`
 	TGUsername string `json:"tg_username" db:"tg_username"`
 
 	YookassaSettings *YookassaSettings `json:"yookassa_settings" db:"-"`
 
 	CreatedAt time.Time `json:"-" db:"created_at"`
 	UpdatedAt time.Time `json:"-" db:"updated_at"`
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
 }
 
 type Event struct {
@@ -55,9 +63,11 @@ type YookassaSettings struct {
 }
 
 type Ticket struct {
-	ID        string `json:"-" db:"id"`
+	ID        string `json:"id" db:"id"`
 	UserID    int64  `json:"-" db:"user_id"`
+	User      User   `json:"user,omitempty" db:"-"`
 	EventID   int64  `json:"-" db:"event_id"`
+	Event     Event  `json:"event,omitempty" db:"-"`
 	IsUsed    bool   `json:"is_used" db:"is_used"`
 	FirstName string `json:"first_name" db:"first_name"`
 	LastName  string `json:"last_name" db:"last_name"`
