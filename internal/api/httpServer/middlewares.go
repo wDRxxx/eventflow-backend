@@ -5,12 +5,22 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/rs/cors"
 
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
 )
 
 var errInvalidAuthHeader = errors.New("invalid auth header")
+
+func (s *server) enableCORS(h http.Handler) http.Handler {
+	return cors.New(cors.Options{
+		AllowCredentials: true,
+		AllowedOrigins:   s.origins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Content-Type", "Content-Length", "Authorization"},
+	}).Handler(h)
+}
 
 func (s *server) authRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

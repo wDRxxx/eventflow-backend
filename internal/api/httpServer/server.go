@@ -9,7 +9,9 @@ import (
 )
 
 type server struct {
-	mux        http.Handler
+	mux     http.Handler
+	origins []string
+
 	apiService service.ApiService
 	authConfig *config.AuthConfig
 }
@@ -17,11 +19,14 @@ type server struct {
 func NewHTTPServer(
 	apiService service.ApiService,
 	authConfig *config.AuthConfig,
+	origins []string,
 ) api.HTTPServer {
 	s := &server{
 		apiService: apiService,
 		authConfig: authConfig,
+		origins:    origins,
 	}
+
 	s.setRoutes()
 
 	return s

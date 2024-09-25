@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -194,7 +195,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.apiService.Login(r.Context(), &user)
+	refreshToken, err := s.apiService.Login(r.Context(), &user)
 	if err != nil {
 		if errors.Is(err, service.ErrWrongCredentials) {
 			utils.WriteJSONError(err, w, http.StatusUnauthorized)
@@ -205,26 +206,43 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(errInternal, w)
 		return
 	}
+	accessToken, err := s.apiService.AccessToken(r.Context(), refreshToken)
 
-	utils.WriteJSON(&models.DefaultResponse{
-		Error:   false,
-		Message: token,
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(s.authConfig.RefreshTokenTTL),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	utils.WriteJSON(&models.TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, w)
 }
 
 func (s *server) refresh(w http.ResponseWriter, r *http.Request) {
-	var t struct {
-		RefreshToken string `json:"refresh_token"`
-	}
+	//var t struct {
+	//	RefreshToken string `json:"refresh_token"`
+	//}
+	//
+	//err := utils.ReadJSON(w, r, &t)
+	//if err != nil {
+	//	slog.Error("Error reading request body", slog.Any("error", err))
+	//	utils.WriteJSONError(errInternal, w)
+	//	return
+	//}
 
-	err := utils.ReadJSON(w, r, &t)
+	refreshToken, err := r.Cookie("refresh_token")
 	if err != nil {
-		slog.Error("Error reading request body", slog.Any("error", err))
-		utils.WriteJSONError(errInternal, w)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	accessToken, err := s.apiService.AccessToken(r.Context(), t.RefreshToken)
+	accessToken, err := s.apiService.AccessToken(r.Context(), refreshToken.Value)
 	if err != nil {
 		slog.Error("Error getting access token", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)

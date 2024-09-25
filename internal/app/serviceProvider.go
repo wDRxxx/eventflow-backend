@@ -85,7 +85,7 @@ func (s *serviceProvider) ApiService(ctx context.Context) service.ApiService {
 
 func (s *serviceProvider) HTTPServer(ctx context.Context) api.HTTPServer {
 	if s.httpServer == nil {
-		s.httpServer = httpServer.NewHTTPServer(s.ApiService(ctx), s.AuthConfig())
+		s.httpServer = httpServer.NewHTTPServer(s.ApiService(ctx), s.AuthConfig(), s.HttpConfig().Origins)
 	}
 
 	return s.httpServer

@@ -3,11 +3,13 @@ package config
 import (
 	"net"
 	"os"
+	"strings"
 )
 
 type HttpConfig struct {
-	Host string
-	Port string
+	Host    string
+	Port    string
+	Origins []string
 }
 
 func NewHttpConfig() *HttpConfig {
@@ -17,9 +19,15 @@ func NewHttpConfig() *HttpConfig {
 		panic("HTTP_PORT environment variable is empty")
 	}
 
+	origins := os.Getenv("HTTP_ORIGINS")
+	if len(origins) == 0 {
+		panic("http origins not found")
+	}
+
 	return &HttpConfig{
-		Host: host,
-		Port: port,
+		Host:    host,
+		Port:    port,
+		Origins: strings.Split(origins, " "),
 	}
 }
 
