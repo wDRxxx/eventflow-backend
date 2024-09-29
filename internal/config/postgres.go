@@ -8,12 +8,16 @@ import (
 )
 
 type PostgresConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Database string
-	Timeout  time.Duration
+	host     string
+	port     string
+	user     string
+	password string
+	database string
+	timeout  time.Duration
+}
+
+func (c *PostgresConfig) Timeout() time.Duration {
+	return c.timeout
 }
 
 func NewPostgresConfig() *PostgresConfig {
@@ -53,22 +57,22 @@ func NewPostgresConfig() *PostgresConfig {
 	}
 
 	return &PostgresConfig{
-		Host:     host,
-		Port:     port,
-		User:     user,
-		Password: password,
-		Database: database,
-		Timeout:  time.Duration(t) * time.Second,
+		host:     host,
+		port:     port,
+		user:     user,
+		password: password,
+		database: database,
+		timeout:  time.Duration(t) * time.Second,
 	}
 }
 
-func (s *PostgresConfig) ConnectionString() string {
+func (c *PostgresConfig) ConnectionString() string {
 	return fmt.Sprintf(
 		"host=%s port=%s dbname=%s user=%s password=%s sslmode=disable",
-		s.Host,
-		s.Port,
-		s.Database,
-		s.User,
-		s.Password,
+		c.host,
+		c.port,
+		c.database,
+		c.user,
+		c.password,
 	)
 }

@@ -8,10 +8,26 @@ import (
 )
 
 type AuthConfig struct {
-	AccessTokenSecret  string
-	AccessTokenTTL     time.Duration
-	RefreshTokenSecret string
-	RefreshTokenTTL    time.Duration
+	accessTokenSecret  string
+	accessTokenTTL     time.Duration
+	refreshTokenSecret string
+	refreshTokenTTL    time.Duration
+}
+
+func (c *AuthConfig) AccessTokenSecret() string {
+	return c.accessTokenSecret
+}
+
+func (c *AuthConfig) AccessTokenTTL() time.Duration {
+	return c.accessTokenTTL
+}
+
+func (c *AuthConfig) RefreshTokenSecret() string {
+	return c.refreshTokenSecret
+}
+
+func (c *AuthConfig) RefreshTokenTTL() time.Duration {
+	return c.refreshTokenTTL
 }
 
 func NewAuthConfig() *AuthConfig {
@@ -36,9 +52,9 @@ func NewAuthConfig() *AuthConfig {
 	}
 
 	return &AuthConfig{
-		AccessTokenSecret:  ats,
-		AccessTokenTTL:     attl,
-		RefreshTokenSecret: rts,
-		RefreshTokenTTL:    rttl,
+		accessTokenSecret:  ats,
+		accessTokenTTL:     attl,
+		refreshTokenSecret: rts,
+		refreshTokenTTL:    rttl,
 	}
 }

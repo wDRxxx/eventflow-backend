@@ -16,7 +16,7 @@ var errInvalidAuthHeader = errors.New("invalid auth header")
 func (s *server) enableCORS(h http.Handler) http.Handler {
 	return cors.New(cors.Options{
 		AllowCredentials: true,
-		AllowedOrigins:   s.origins,
+		AllowedOrigins:   s.httpConfig.Origins(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type", "Content-Length", "Authorization"},
 	}).Handler(h)
@@ -48,7 +48,7 @@ func (s *server) getAndVerifyHeaderToken(r *http.Request) (string, *models.UserC
 	}
 
 	token := exploded[1]
-	claims, err := utils.VerifyToken(token, s.authConfig.AccessTokenSecret)
+	claims, err := utils.VerifyToken(token, s.authConfig.AccessTokenSecret())
 	if err != nil {
 		return "", nil, errInvalidAuthHeader
 	}

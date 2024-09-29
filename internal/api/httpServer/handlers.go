@@ -1,6 +1,7 @@
 package httpServer
 
 import (
+	"bytes"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -40,14 +41,51 @@ func (s *server) event(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(resp, w)
 }
 
+func (s *server) events(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Query().Get("page")
+	page, err := strconv.Atoi(p)
+	if err != nil || page < 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	events, err := s.apiService.Events(r.Context(), page)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			slog.Error("Error getting events", slog.Any("error", err))
+			utils.WriteJSONError(errInternal, w)
+			return
+		}
+	}
+
+	utils.WriteJSON(events, w)
+}
+
 func (s *server) createEvent(w http.ResponseWriter, r *http.Request) {
-	var event models.Event
-	err := utils.ReadJSON(w, r, &event)
+	err := r.ParseMultipartForm(32 << 20)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
 		return
 	}
+
+	imgs, err := saveMultipartImages(r, "image", s.httpConfig.StaticDir())
+	if err != nil {
+		slog.Error("Error saving event image", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	var event models.Event
+	err = utils.ReadJSON(bytes.NewBuffer([]byte(r.Form.Get("event"))), &event)
+	if err != nil {
+		slog.Error("Error reading request body", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	// TODO: validation
+
+	event.PreviewImage = imgs[0]
 
 	_, claims, err := s.getAndVerifyHeaderToken(r)
 	if err != nil {
@@ -94,7 +132,7 @@ func (s *server) updateEvent(w http.ResponseWriter, r *http.Request) {
 	urlTitle := chi.URLParam(r, "url-title")
 
 	event := models.Event{URLTitle: urlTitle}
-	err = utils.ReadJSON(w, r, &event)
+	err = utils.ReadReqJSON(w, r, &event)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
@@ -154,14 +192,40 @@ func (s *server) ticket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(ticket, w)
+}
 
+func (s *server) buyTicket(w http.ResponseWriter, r *http.Request) {
+	var req models.BuyTicketRequest
+	err := utils.ReadJSON(r.Body, &req)
+	if err != nil {
+		slog.Error("Error reading request body", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+	req.UserEmail = claims.Email
+
+	url, err := s.apiService.BuyTicket(r.Context(), &req)
+	if err != nil {
+		slog.Error("Error buying ticket", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	utils.WriteJSON(url, w)
 }
 
 //
 
 func (s *server) register(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	err := utils.ReadJSON(w, r, &user)
+	err := utils.ReadReqJSON(w, r, &user)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
@@ -188,7 +252,7 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	err := utils.ReadJSON(w, r, &user)
+	err := utils.ReadReqJSON(w, r, &user)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
@@ -211,7 +275,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
-		Expires:  time.Now().Add(s.authConfig.RefreshTokenTTL),
+		Expires:  time.Now().Add(s.authConfig.RefreshTokenTTL()),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
@@ -225,17 +289,6 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) refresh(w http.ResponseWriter, r *http.Request) {
-	//var t struct {
-	//	RefreshToken string `json:"refresh_token"`
-	//}
-	//
-	//err := utils.ReadJSON(w, r, &t)
-	//if err != nil {
-	//	slog.Error("Error reading request body", slog.Any("error", err))
-	//	utils.WriteJSONError(errInternal, w)
-	//	return
-	//}
-
 	refreshToken, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -253,4 +306,82 @@ func (s *server) refresh(w http.ResponseWriter, r *http.Request) {
 		Error:   false,
 		Message: accessToken,
 	}, w)
+}
+
+func (s *server) logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (s *server) profile(w http.ResponseWriter, r *http.Request) {
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	user, err := s.apiService.User(r.Context(), claims.Email)
+	if err != nil {
+		slog.Error("Error getting user", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+	user.Password = ""
+
+	utils.WriteJSON(user, w)
+}
+
+func (s *server) updateProfile(w http.ResponseWriter, r *http.Request) {
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var user models.User
+	utils.ReadReqJSON(w, r, &user)
+	id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		slog.Error("Error parsing subject", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+	user.ID = int64(id)
+
+	err = s.apiService.UpdateUser(r.Context(), &user)
+	if err != nil {
+		slog.Error("Error updating user", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	utils.WriteJSON(&models.DefaultResponse{
+		Error:   false,
+		Message: "Successfully updated user",
+	}, w)
+}
+
+func saveMultipartImages(r *http.Request, formField string, staticDir string) ([]string, error) {
+	reqImages := r.MultipartForm.File[formField]
+	var images []string
+
+	for _, img := range reqImages {
+		filename, err := utils.SaveStaticImage(img, staticDir)
+		if err != nil {
+			return nil, err
+		}
+
+		images = append(images, filename)
+	}
+
+	return images, nil
 }

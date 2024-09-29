@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/wDRxxx/eventflow-backend/internal/models"
@@ -56,12 +57,17 @@ func WriteJSONError(err error, w http.ResponseWriter, status ...int) error {
 	return nil
 }
 
-// ReadJSON reads json to given data
-func ReadJSON(w http.ResponseWriter, r *http.Request, data any) error {
+// ReadReqJSON reads json from request to given data
+func ReadReqJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	maxBytes := 1024 * 1024 // 1mb
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 
-	decoder := json.NewDecoder(r.Body)
+	return ReadJSON(r.Body, &data)
+}
+
+// ReadJSON reads json to given data
+func ReadJSON(reader io.Reader, data any) error {
+	decoder := json.NewDecoder(reader)
 	decoder.DisallowUnknownFields()
 
 	err := decoder.Decode(&data)

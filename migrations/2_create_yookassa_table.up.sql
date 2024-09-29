@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS "users_yookassa_settings" (
-    "id" INTEGER NOT NULL UNIQUE,
+    "id" SERIAL NOT NULL UNIQUE,
     "user_id" INTEGER NOT NULL,
     "shop_id" VARCHAR NOT NULL,
     "shop_key" VARCHAR NOT NULL,

@@ -2,12 +2,13 @@ package app
 
 import (
 	"context"
-	"github.com/wDRxxx/eventflow-backend/internal/closer"
-	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"log"
 	"log/slog"
 	"net/http"
 	"sync"
+
+	"github.com/wDRxxx/eventflow-backend/internal/closer"
+	"github.com/wDRxxx/eventflow-backend/internal/config"
 )
 
 type App struct {

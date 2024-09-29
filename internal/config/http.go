@@ -7,9 +7,18 @@ import (
 )
 
 type HttpConfig struct {
-	Host    string
-	Port    string
-	Origins []string
+	host      string
+	port      string
+	origins   []string
+	staticDir string
+}
+
+func (c *HttpConfig) StaticDir() string {
+	return c.staticDir
+}
+
+func (c *HttpConfig) Origins() []string {
+	return c.origins
 }
 
 func NewHttpConfig() *HttpConfig {
@@ -19,18 +28,24 @@ func NewHttpConfig() *HttpConfig {
 		panic("HTTP_PORT environment variable is empty")
 	}
 
+	staticDir := os.Getenv("HTTP_STATIC_DIR")
+	if staticDir == "" {
+		panic("HTTP_STATIC_DIR environment variable is empty")
+	}
+
 	origins := os.Getenv("HTTP_ORIGINS")
 	if len(origins) == 0 {
-		panic("http origins not found")
+		panic("HTTP_ORIGINS environment variable is empty")
 	}
 
 	return &HttpConfig{
-		Host:    host,
-		Port:    port,
-		Origins: strings.Split(origins, " "),
+		host:      host,
+		port:      port,
+		origins:   strings.Split(origins, " "),
+		staticDir: staticDir,
 	}
 }
 
 func (c *HttpConfig) Address() string {
-	return net.JoinHostPort(c.Host, c.Port)
+	return net.JoinHostPort(c.host, c.port)
 }

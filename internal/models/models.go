@@ -9,10 +9,10 @@ import (
 type User struct {
 	ID         int64  `json:"-" db:"id"`
 	Email      string `json:"email" db:"email"`
-	Password   string `json:"password" db:"password"`
-	TGUsername string `json:"tg_username" db:"tg_username"`
+	Password   string `json:"password,omitempty" db:"password"`
+	TGUsername string `json:"tg_username,omitempty" db:"tg_username"`
 
-	YookassaSettings *YookassaSettings `json:"yookassa_settings" db:"-"`
+	YookassaSettings YookassaSettings `json:"yookassa_settings" db:"-"`
 
 	CreatedAt time.Time `json:"-" db:"created_at"`
 	UpdatedAt time.Time `json:"-" db:"updated_at"`
@@ -45,7 +45,7 @@ type Event struct {
 }
 
 type Price struct {
-	ID       int64  `json:"-" db:"id"`
+	ID       int64  `json:"id,omitempty" db:"id"`
 	Price    int64  `json:"price" db:"price"`
 	Currency string `json:"currency" db:"currency"`
 
@@ -56,7 +56,7 @@ type Price struct {
 type YookassaSettings struct {
 	ID      int64  `json:"-" db:"id"`
 	UserID  int64  `json:"-" db:"user_id"`
-	ShopID  int64  `json:"shop_id" db:"shop_id"`
+	ShopID  string `json:"shop_id" db:"shop_id"`
 	ShopKey string `json:"shop_key" db:"shop_key"`
 
 	CreatedAt time.Time `json:"-" db:"created_at"`
@@ -66,7 +66,7 @@ type YookassaSettings struct {
 type Ticket struct {
 	ID        string `json:"id" db:"id"`
 	UserID    int64  `json:"-" db:"user_id"`
-	User      User   `json:"user,omitempty" db:"-"`
+	User      User   `json:"u-" db:"-"`
 	EventID   int64  `json:"-" db:"event_id"`
 	Event     Event  `json:"event,omitempty" db:"-"`
 	IsUsed    bool   `json:"is_used" db:"is_used"`
