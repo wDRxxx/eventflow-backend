@@ -1,9 +1,11 @@
 package models
 
 import (
+	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	yoopayment "github.com/wDRxxx/yookassa-go-sdk/yookassa/models/payment"
 )
 
 type User struct {
@@ -72,4 +74,13 @@ type Ticket struct {
 	IsUsed    bool   `json:"is_used" db:"is_used"`
 	FirstName string `json:"first_name" db:"first_name"`
 	LastName  string `json:"last_name" db:"last_name"`
+	PaymentID string `json:"-" db:"payment_id"`
+}
+
+type TicketPayment struct {
+	BuyTicketRequest *BuyTicketRequest
+	Payment          *yoopayment.Payment
+	User             *User
+	Event            *Event
+	Ctx              context.Context
 }

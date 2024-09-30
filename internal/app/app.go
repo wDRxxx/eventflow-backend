@@ -6,13 +6,14 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"syscall"
 
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 )
 
 type App struct {
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 
 	serviceProver *serviceProvider
 
@@ -20,13 +21,17 @@ type App struct {
 	prometheusServer *http.Server
 }
 
-func NewApp(ctx context.Context, envPath string) (*App, error) {
+func NewApp(ctx context.Context, wg *sync.WaitGroup, envPath string) (*App, error) {
 	err := config.Load(envPath)
 	if err != nil {
 		return nil, err
 	}
 
-	app := &App{wg: sync.WaitGroup{}}
+	app := &App{wg: wg}
+
+	cl := closer.New(app.wg, syscall.SIGINT, syscall.SIGTERM)
+	closer.SetGlobalCloser(cl)
+
 	err = app.initDeps(ctx)
 	if err != nil {
 		return nil, err
@@ -44,7 +49,7 @@ func (a *App) initDeps(ctx context.Context) error {
 }
 
 func (a *App) initHttpServer(ctx context.Context) {
-	s := a.serviceProver.HTTPServer(ctx)
+	s := a.serviceProver.HTTPServer(ctx, a.wg)
 	a.httpServer = &http.Server{
 		Addr:    a.serviceProver.HttpConfig().Address(),
 		Handler: s.Handler(),
@@ -57,16 +62,20 @@ func (a *App) Run() error {
 		closer.Wait()
 	}()
 
-	a.wg.Add(1)
+	// will stack if use app wg
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		defer a.wg.Done()
+		defer func() {
+			wg.Done()
+		}()
 
 		err := a.runHttpServer()
 		if err != nil {
 			log.Fatalf("error running http server: %v", err)
 		}
 	}()
-	a.wg.Wait()
+	wg.Wait()
 
 	return nil
 }

@@ -10,4 +10,5 @@ var (
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrWrongCredentials  = errors.New("wrong credentials")
 	ErrPermissionDenied  = errors.New("permission denied")
+	ErrPaymentTimeout    = errors.New("payment timeout")
 )

@@ -218,7 +218,10 @@ func (s *server) buyTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(url, w)
+	utils.WriteJSON(&models.DefaultResponse{
+		Error:   false,
+		Message: url,
+	}, w)
 }
 
 //
@@ -348,7 +351,13 @@ func (s *server) updateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	utils.ReadReqJSON(w, r, &user)
+	err = utils.ReadReqJSON(w, r, &user)
+	if err != nil {
+		slog.Error("Error reading request body", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
 	id, err := strconv.Atoi(claims.Subject)
 	if err != nil {
 		slog.Error("Error parsing subject", slog.Any("error", err))

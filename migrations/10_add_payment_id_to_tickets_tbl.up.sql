@@ -1,0 +1,2 @@
+ALTER TABLE tickets
+    ADD COLUMN payment_id VARCHAR(36) DEFAULT '';

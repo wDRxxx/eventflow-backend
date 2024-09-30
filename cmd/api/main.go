@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"sync"
 
 	"github.com/wDRxxx/eventflow-backend/internal/app"
 	"github.com/wDRxxx/eventflow-backend/internal/logger"
@@ -23,7 +24,9 @@ func main() {
 	ctx := context.Background()
 	logger.SetupLogger(envLevel, logsPath)
 
-	a, err := app.NewApp(ctx, envPath)
+	var wg sync.WaitGroup
+
+	a, err := app.NewApp(ctx, &wg, envPath)
 	if err != nil {
 		log.Fatalf("error creating app: %v", err)
 	}

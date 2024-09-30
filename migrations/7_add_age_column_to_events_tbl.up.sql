@@ -1,2 +1,2 @@
 ALTER TABLE "events"
-ADD COLUMN minimal_age SMALLINT DEFAULT 0;
+    ADD COLUMN minimal_age SMALLINT DEFAULT 0;

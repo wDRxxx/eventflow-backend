@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"log"
+	"log/slog"
+	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
@@ -71,6 +73,7 @@ func (s *serviceProvider) Repository(ctx context.Context) repository.Repository 
 			log.Fatalf("error connecting to database: %v", err)
 		}
 		closer.Add(func() error {
+			slog.Info("closing pgxpool")
 			db.Close()
 			return nil
 		})
@@ -86,9 +89,10 @@ func (s *serviceProvider) Repository(ctx context.Context) repository.Repository 
 	return s.repository
 }
 
-func (s *serviceProvider) ApiService(ctx context.Context) service.ApiService {
+func (s *serviceProvider) ApiService(ctx context.Context, wg *sync.WaitGroup) service.ApiService {
 	if s.apiService == nil {
 		s.apiService = apiService.NewApiService(
+			wg,
 			s.Repository(ctx),
 			s.AuthConfig(),
 			s.YookassaClient(),
@@ -98,9 +102,9 @@ func (s *serviceProvider) ApiService(ctx context.Context) service.ApiService {
 	return s.apiService
 }
 
-func (s *serviceProvider) HTTPServer(ctx context.Context) api.HTTPServer {
+func (s *serviceProvider) HTTPServer(ctx context.Context, wg *sync.WaitGroup) api.HTTPServer {
 	if s.httpServer == nil {
-		s.httpServer = httpServer.NewHTTPServer(s.ApiService(ctx), s.AuthConfig(), s.HttpConfig())
+		s.httpServer = httpServer.NewHTTPServer(s.ApiService(ctx, wg), s.AuthConfig(), s.HttpConfig())
 	}
 
 	return s.httpServer

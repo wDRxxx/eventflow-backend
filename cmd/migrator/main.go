@@ -3,16 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/joho/godotenv"
 
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
-
-// TODO: add yookassa data table
 
 func main() {
 	var action, migrationsPath, envPath string
