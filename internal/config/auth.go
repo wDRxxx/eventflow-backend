@@ -12,6 +12,11 @@ type AuthConfig struct {
 	accessTokenTTL     time.Duration
 	refreshTokenSecret string
 	refreshTokenTTL    time.Duration
+	domain             string
+}
+
+func (c *AuthConfig) Domain() string {
+	return c.domain
 }
 
 func (c *AuthConfig) AccessTokenSecret() string {
@@ -51,10 +56,16 @@ func NewAuthConfig() *AuthConfig {
 		panic("REFRESH_TOKEN_TTL environment variable is not set or has wrong format")
 	}
 
+	domain := os.Getenv("DOMAIN")
+	if domain == "" {
+		panic("DOMAIN environment variable is not set")
+	}
+
 	return &AuthConfig{
 		accessTokenSecret:  ats,
 		accessTokenTTL:     attl,
 		refreshTokenSecret: rts,
 		refreshTokenTTL:    rttl,
+		domain:             domain,
 	}
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"sync"
@@ -13,6 +14,8 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
+	"github.com/wDRxxx/eventflow-backend/internal/mailer"
+	"github.com/wDRxxx/eventflow-backend/internal/mailer/smtp"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/postgres"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
@@ -24,11 +27,14 @@ type serviceProvider struct {
 	postgresConfig *config.PostgresConfig
 	authConfig     *config.AuthConfig
 	yooConfig      *config.YookassaConfig
+	mailerConfig   *config.MailerConfig
 
 	repository repository.Repository
 	apiService service.ApiService
 	httpServer api.HTTPServer
-	yooClient  *yookassa.Client
+
+	yooClient *yookassa.Client
+	mailer    mailer.Mailer
 }
 
 func newServiceProvider() *serviceProvider {
@@ -66,13 +72,21 @@ func (s *serviceProvider) YookassaConfig() *config.YookassaConfig {
 	return s.yooConfig
 }
 
+func (s *serviceProvider) MailerConfig() *config.MailerConfig {
+	if s.mailerConfig == nil {
+		s.mailerConfig = config.NewMailerConfig()
+	}
+
+	return s.mailerConfig
+}
+
 func (s *serviceProvider) Repository(ctx context.Context) repository.Repository {
 	if s.repository == nil {
 		db, err := pgxpool.New(ctx, s.PostgresConfig().ConnectionString())
 		if err != nil {
 			log.Fatalf("error connecting to database: %v", err)
 		}
-		closer.Add(func() error {
+		closer.Add(2, func() error {
 			slog.Info("closing pgxpool")
 			db.Close()
 			return nil
@@ -96,6 +110,7 @@ func (s *serviceProvider) ApiService(ctx context.Context, wg *sync.WaitGroup) se
 			s.Repository(ctx),
 			s.AuthConfig(),
 			s.YookassaClient(),
+			s.Mailer(wg),
 		)
 	}
 
@@ -119,4 +134,17 @@ func (s *serviceProvider) YookassaClient() *yookassa.Client {
 	}
 
 	return s.yooClient
+}
+
+func (s *serviceProvider) Mailer(wg *sync.WaitGroup) mailer.Mailer {
+	if s.mailer == nil {
+		m, err := smtp.NewSMTPMailer(s.MailerConfig(), wg)
+		if err != nil {
+			panic(fmt.Sprintf("error creating mailer: %v", err))
+		}
+
+		s.mailer = m
+	}
+
+	return s.mailer
 }

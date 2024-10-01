@@ -22,6 +22,8 @@ func (s *serv) listenForPayments() {
 			s.wg.Add(1)
 
 			go func() {
+				s.wg.Done()
+
 				err := s.checkPaymentStatus(ticketPayment)
 				if err != nil {
 					if !errors.Is(err, service.ErrPaymentTimeout) {
@@ -36,8 +38,6 @@ func (s *serv) listenForPayments() {
 }
 
 func (s *serv) checkPaymentStatus(ticketPayment *models.TicketPayment) error {
-	defer s.wg.Done()
-
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
@@ -56,14 +56,16 @@ func (s *serv) checkPaymentStatus(ticketPayment *models.TicketPayment) error {
 				ticket := &models.Ticket{
 					ID:        uuid.NewString(),
 					UserID:    ticketPayment.User.ID,
+					User:      ticketPayment.User,
 					EventID:   ticketPayment.Event.ID,
+					Event:     ticketPayment.Event,
 					IsUsed:    false,
 					FirstName: ticketPayment.BuyTicketRequest.FirstName,
 					LastName:  ticketPayment.BuyTicketRequest.LastName,
 					PaymentID: payment.ID,
 				}
 
-				err := s.CreateTicket(ctx, ticket)
+				err = s.createTicket(ctx, ticket)
 				if err != nil {
 					return err
 				}
@@ -91,13 +93,15 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 		ticket := &models.Ticket{
 			ID:        uuid.NewString(),
 			UserID:    user.ID,
+			User:      user,
 			EventID:   event.ID,
+			Event:     event,
 			IsUsed:    false,
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
 		}
 
-		err = s.CreateTicket(ctx, ticket)
+		err = s.createTicket(ctx, ticket)
 		return "", nil
 	}
 	var amount *yoomodels.Amount
@@ -116,10 +120,9 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 		PaymentMethodData: &yoopayment.PaymentMethodData{
 			Type: "bank_card",
 		},
-		// TODO: change return url
 		Confirmation: &yoomodels.Confirmation{
 			Type:      "redirect",
-			ReturnURL: "localhost:3000/user/profile",
+			ReturnURL: s.authConfig.Domain() + "/user/profile",
 		},
 		Receipt: &yoomodels.Receipt{
 			Email: user.Email,
@@ -151,11 +154,21 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 	return respPayment.Confirmation.ConfirmationURL, nil
 }
 
-func (s *serv) CreateTicket(ctx context.Context, ticket *models.Ticket) error {
-	_, err := s.repo.InsertTicket(ctx, ticket)
+func (s *serv) createTicket(ctx context.Context, ticket *models.Ticket) error {
+	id, err := s.repo.InsertTicket(ctx, ticket)
 	if err != nil {
 		return err
 	}
+
+	msg := &models.OrderMessage{
+		To:          []string{ticket.User.Email},
+		TicketID:    id,
+		EventTitle:  ticket.Event.Title,
+		ImageURL:    s.authConfig.Domain() + "/api/static/" + ticket.Event.PreviewImage,
+		RedirectURL: s.authConfig.Domain() + "/user/profile",
+	}
+
+	s.mailer.SendOrderMail(msg)
 
 	return nil
 }

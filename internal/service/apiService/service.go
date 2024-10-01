@@ -1,13 +1,14 @@
 package apiService
 
 import (
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
+	"github.com/wDRxxx/eventflow-backend/internal/mailer"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
@@ -22,6 +23,8 @@ type serv struct {
 
 	paymentsChan chan *models.TicketPayment
 	doneChan     chan struct{}
+
+	mailer mailer.Mailer
 }
 
 func NewApiService(
@@ -29,6 +32,7 @@ func NewApiService(
 	repo repository.Repository,
 	authConfig *config.AuthConfig,
 	yooClient *yookassa.Client,
+	mailer mailer.Mailer,
 ) service.ApiService {
 	s := &serv{
 		wg:           wg,
@@ -37,11 +41,18 @@ func NewApiService(
 		yooClient:    yooClient,
 		paymentsChan: make(chan *models.TicketPayment),
 		doneChan:     make(chan struct{}),
+		mailer:       mailer,
 	}
 
-	closer.Add(func() error {
-		log.Println("closing payment channels...")
+	closer.Add(1, func() error {
+		slog.Info("sending done signal to api service...")
 		s.doneChan <- struct{}{}
+
+		return nil
+	})
+
+	closer.Add(2, func() error {
+		slog.Info("closing api service channels...")
 		close(s.paymentsChan)
 		close(s.doneChan)
 

@@ -68,9 +68,9 @@ type YookassaSettings struct {
 type Ticket struct {
 	ID        string `json:"id" db:"id"`
 	UserID    int64  `json:"-" db:"user_id"`
-	User      User   `json:"u-" db:"-"`
+	User      *User  `json:"-" db:"-"`
 	EventID   int64  `json:"-" db:"event_id"`
-	Event     Event  `json:"event,omitempty" db:"-"`
+	Event     *Event `json:"event,omitempty" db:"-"`
 	IsUsed    bool   `json:"is_used" db:"is_used"`
 	FirstName string `json:"first_name" db:"first_name"`
 	LastName  string `json:"last_name" db:"last_name"`

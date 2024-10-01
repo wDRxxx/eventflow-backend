@@ -10,8 +10,8 @@ import (
 var globalCloser *Closer
 
 // Add adds new function to globalCloser
-func Add(f ...func() error) {
-	globalCloser.Add(f...)
+func Add(stage int, f ...func() error) {
+	globalCloser.Add(stage, f...)
 }
 
 // Wait waits for executing all functions added by Add
@@ -25,11 +25,12 @@ func CloseAll() {
 }
 
 type Closer struct {
-	wg    *sync.WaitGroup
-	mu    sync.Mutex
-	once  sync.Once
-	done  chan struct{}
-	funcs []func() error
+	wg            *sync.WaitGroup
+	mu            sync.Mutex
+	once          sync.Once
+	done          chan struct{}
+	funcsStageOne []func() error
+	funcsStageTwo []func() error
 }
 
 func SetGlobalCloser(c *Closer) {
@@ -53,9 +54,14 @@ func New(wg *sync.WaitGroup, sig ...os.Signal) *Closer {
 	return c
 }
 
-func (c *Closer) Add(f ...func() error) {
+func (c *Closer) Add(stage int, f ...func() error) {
 	c.mu.Lock()
-	c.funcs = append(c.funcs, f...)
+	switch stage {
+	case 1:
+		c.funcsStageOne = append(c.funcsStageOne, f...)
+	case 2:
+		c.funcsStageTwo = append(c.funcsStageTwo, f...)
+	}
 	c.mu.Unlock()
 }
 
@@ -67,33 +73,45 @@ func (c *Closer) CloseAll() {
 	c.once.Do(func() {
 		defer close(c.done)
 
-		slog.Info("waiting for running jobs to end...")
-		c.wg.Wait()
-		slog.Info("done. closing all...")
-
+		slog.Info("running stage 1...\n")
 		c.mu.Lock()
-		funcs := c.funcs
-		c.funcs = nil
+		funcs := c.funcsStageOne
+		c.funcsStageOne = nil
+		c.runFuncs(funcs)
 		c.mu.Unlock()
 
-		errs := make(chan error, len(funcs))
-
-		c.wg.Add(len(funcs))
-		for _, f := range funcs {
-			go func(f func() error) {
-				defer c.wg.Done()
-
-				errs <- f()
-			}(f)
-		}
-
-		if len(errs) > 0 {
-			for err := range errs {
-				slog.Error("error returned from closer: %v\n", slog.String("error", err.Error()))
-			}
-		}
-
 		c.wg.Wait()
+
+		slog.Info("running stage 2...\n")
+		c.mu.Lock()
+		funcs = c.funcsStageTwo
+		c.funcsStageTwo = nil
+		c.runFuncs(funcs)
+		c.mu.Unlock()
+
 		os.Exit(0)
 	})
+}
+
+func (c *Closer) runFuncs(funcs []func() error) {
+	errs := make(chan error, len(funcs))
+
+	var wg sync.WaitGroup
+
+	wg.Add(len(funcs))
+	for _, f := range funcs {
+		go func(f func() error) {
+			defer wg.Done()
+
+			errs <- f()
+		}(f)
+	}
+
+	if len(errs) > 0 {
+		for err := range errs {
+			slog.Error("error returned from closer: %v\n", slog.String("error", err.Error()))
+		}
+	}
+
+	wg.Wait()
 }

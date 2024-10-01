@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"log"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -178,7 +177,6 @@ func (r *repo) InsertEvent(ctx context.Context, event *models.Event) (id int64, 
 		return 0, err
 	}
 
-	log.Println(m)
 	builder := sq.Insert(eventsTable).
 		SetMap(m).
 		Suffix("RETURNING id").

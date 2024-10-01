@@ -39,7 +39,7 @@ func SetupLogger(envLevel string, logsPath string) {
 		if err != nil {
 			log.Fatalf("error creating new log file: %v", err)
 		}
-		closer.Add(func() error {
+		closer.Add(2, func() error {
 			slog.Info("closing log file")
 			return f.Close()
 		})
