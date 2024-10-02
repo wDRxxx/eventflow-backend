@@ -232,7 +232,7 @@ func (s *server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 		}
 
 		slog.Error("Error deleting event", slog.Any("error", err))
-		utils.WriteJSONError(errInternal, w)
+		utils.WriteJSONError(errors.New("Error. Maybe someone already has bought a ticket..."), w)
 		return
 	}
 
