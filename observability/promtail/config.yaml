@@ -1,0 +1,35 @@
+# check if loaded
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: eventflow
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: eventflow
+          __path__: /eventflow/logs/*log
+    pipeline_stages:
+      # - json:
+      #     # те данные, что будем извлекать
+      #     expressions:
+      #       level: level
+      #       message: msg
+      #       timestamp: time
+      # # то, что сможем выбирать для фильтра
+      # - labels:
+      #     level:
+      #     message:
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - output:
+          source: output

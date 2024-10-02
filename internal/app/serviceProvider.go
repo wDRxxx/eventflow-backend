@@ -28,6 +28,7 @@ type serviceProvider struct {
 	authConfig     *config.AuthConfig
 	yooConfig      *config.YookassaConfig
 	mailerConfig   *config.MailerConfig
+	metricsConfig  *config.MetricsConfig
 
 	repository repository.Repository
 	apiService service.ApiService
@@ -78,6 +79,14 @@ func (s *serviceProvider) MailerConfig() *config.MailerConfig {
 	}
 
 	return s.mailerConfig
+}
+
+func (s *serviceProvider) MetricsConfig() *config.MetricsConfig {
+	if s.metricsConfig == nil {
+		s.metricsConfig = config.NewMetricsConfig()
+	}
+
+	return s.metricsConfig
 }
 
 func (s *serviceProvider) Repository(ctx context.Context) repository.Repository {

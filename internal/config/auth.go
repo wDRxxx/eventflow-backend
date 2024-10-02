@@ -38,7 +38,7 @@ func (c *AuthConfig) RefreshTokenTTL() time.Duration {
 func NewAuthConfig() *AuthConfig {
 	ats := os.Getenv("ACCESS_TOKEN_SECRET")
 	if ats == "" {
-		panic("ACCESS_TOKEN_SECRET environment variable is not set")
+		panic("ACCESS_TOKEN_SECRET environment variable is empty")
 	}
 
 	attl, err := str2duration.ParseDuration(os.Getenv("ACCESS_TOKEN_TTL"))
@@ -48,17 +48,17 @@ func NewAuthConfig() *AuthConfig {
 
 	rts := os.Getenv("REFRESH_TOKEN_SECRET")
 	if rts == "" {
-		panic("REFRESH_TOKEN_SECRET environment variable is not set")
+		panic("REFRESH_TOKEN_SECRET environment variable is empty")
 	}
 
 	rttl, err := str2duration.ParseDuration(os.Getenv("REFRESH_TOKEN_TTL"))
 	if err != nil {
-		panic("REFRESH_TOKEN_TTL environment variable is not set or has wrong format")
+		panic("REFRESH_TOKEN_TTL environment variable is empty or has wrong format")
 	}
 
 	domain := os.Getenv("DOMAIN")
 	if domain == "" {
-		panic("DOMAIN environment variable is not set")
+		panic("DOMAIN environment variable is empty")
 	}
 
 	return &AuthConfig{

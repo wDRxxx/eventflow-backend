@@ -10,6 +10,7 @@ import (
 func (s *server) setRoutes() {
 	mux := chi.NewRouter()
 
+	mux.Use(s.metrics)
 	mux.Use(middleware.Recoverer)
 	mux.Use(s.enableCORS)
 

@@ -8,15 +8,18 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/mailer"
+	"github.com/wDRxxx/eventflow-backend/internal/metrics"
 )
 
 type App struct {
 	wg *sync.WaitGroup
 
-	serviceProver *serviceProvider
+	serviceProvider *serviceProvider
 
 	httpServer       *http.Server
 	prometheusServer *http.Server
@@ -44,24 +47,36 @@ func NewApp(ctx context.Context, wg *sync.WaitGroup, envPath string) (*App, erro
 }
 
 func (a *App) initDeps(ctx context.Context) error {
-	a.serviceProver = newServiceProvider()
+	a.serviceProvider = newServiceProvider()
 
-	a.initHttpServer(ctx)
+	metrics.Init(a.serviceProvider.MetricsConfig().AppName())
+	a.initHTTPServer(ctx)
+	a.initPrometheusServer()
 	a.initMailer()
 
 	return nil
 }
 
-func (a *App) initHttpServer(ctx context.Context) {
-	s := a.serviceProver.HTTPServer(ctx, a.wg)
+func (a *App) initHTTPServer(ctx context.Context) {
+	s := a.serviceProvider.HTTPServer(ctx, a.wg)
 	a.httpServer = &http.Server{
-		Addr:    a.serviceProver.HttpConfig().Address(),
+		Addr:    a.serviceProvider.HttpConfig().Address(),
 		Handler: s.Handler(),
 	}
 }
 
+func (a *App) initPrometheusServer() {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	a.prometheusServer = &http.Server{
+		Addr:    a.serviceProvider.MetricsConfig().PrometheusAddress(),
+		Handler: mux,
+	}
+}
+
 func (a *App) initMailer() {
-	m := a.serviceProver.Mailer(a.wg)
+	m := a.serviceProvider.Mailer(a.wg)
 	a.mailer = m
 }
 
@@ -71,7 +86,6 @@ func (a *App) Run() error {
 		closer.Wait()
 	}()
 
-	// will stack if use app wg
 	a.wg.Add(1)
 	go func() {
 		closer.Add(1, func() error {
@@ -85,7 +99,19 @@ func (a *App) Run() error {
 		}
 	}()
 
-	// run mailer
+	a.wg.Add(1)
+	go func() {
+		closer.Add(1, func() error {
+			a.wg.Done()
+			return nil
+		})
+
+		err := a.runPrometheusServer()
+		if err != nil {
+			log.Fatalf("error running http server: %v", err)
+		}
+	}()
+
 	a.wg.Add(1)
 	go func() {
 		closer.Add(1, func() error {
@@ -105,6 +131,17 @@ func (a *App) runHttpServer() error {
 	slog.Info("starting http server...")
 
 	err := a.httpServer.ListenAndServe()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) runPrometheusServer() error {
+	slog.Info("starting prometheus server...")
+
+	err := a.prometheusServer.ListenAndServe()
 	if err != nil {
 		return err
 	}

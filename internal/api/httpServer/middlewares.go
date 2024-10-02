@@ -3,23 +3,24 @@ package httpServer
 import (
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 
-	"github.com/wDRxxx/eventflow-backend/internal/models"
-	"github.com/wDRxxx/eventflow-backend/internal/utils"
+	"github.com/wDRxxx/eventflow-backend/internal/metrics"
 )
 
 var errInvalidAuthHeader = errors.New("invalid auth header")
 
-func (s *server) enableCORS(h http.Handler) http.Handler {
+func (s *server) enableCORS(next http.Handler) http.Handler {
 	return cors.New(cors.Options{
 		AllowCredentials: true,
 		AllowedOrigins:   s.httpConfig.Origins(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type", "Content-Length", "Authorization"},
-	}).Handler(h)
+	}).Handler(next)
 }
 
 func (s *server) authRequired(next http.Handler) http.Handler {
@@ -36,22 +37,31 @@ func (s *server) authRequired(next http.Handler) http.Handler {
 	})
 }
 
-func (s *server) getAndVerifyHeaderToken(r *http.Request) (string, *models.UserClaims, error) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", nil, errInvalidAuthHeader
-	}
+func (s *server) metrics(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		metrics.IncRequestCounter()
 
-	exploded := strings.Split(authHeader, " ")
-	if len(exploded) != 2 || exploded[0] != "Bearer" {
-		return "", nil, errInvalidAuthHeader
-	}
+		start := time.Now()
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		next.ServeHTTP(ww, r)
+		respTime := time.Since(start)
 
-	token := exploded[1]
-	claims, err := utils.VerifyToken(token, s.authConfig.AccessTokenSecret())
-	if err != nil {
-		return "", nil, errInvalidAuthHeader
-	}
+		status := ww.Status()
+		uri := r.RequestURI
 
-	return token, claims, nil
+		if strings.Contains(uri, "events/") {
+			exploded := strings.Split(uri, "/")
+			uri = strings.Join(exploded[:len(exploded)-1], "/")
+		}
+
+		if strings.Contains(uri, "?") {
+			exploded := strings.Split(uri, "?")
+			uri = strings.Join(exploded[:len(exploded)-1], "")
+		}
+
+		if !strings.Contains(uri, "static") {
+			metrics.IncResponseCounter(status, uri)
+			metrics.HistogramsResponseTimeObserve(status, uri, respTime.Seconds())
+		}
+	})
 }
