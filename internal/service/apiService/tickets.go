@@ -181,3 +181,12 @@ func (s *serv) Ticket(ctx context.Context, ticketID string) (*models.Ticket, err
 
 	return ticket, nil
 }
+
+func (s *serv) UserTickets(ctx context.Context, userID int64) ([]*models.Ticket, error) {
+	tickets, err := s.repo.UserTickets(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}

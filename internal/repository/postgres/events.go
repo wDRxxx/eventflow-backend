@@ -21,6 +21,7 @@ func (r *repo) Events(ctx context.Context, page int) ([]*models.Event, error) {
 	).
 		From(eventsTable).
 		Where(sq.Eq{"is_public": true}).
+		OrderBy("created_at DESC").
 		Limit(10).
 		Offset(uint64((page - 1) * 10)).
 		PlaceholderFormat(sq.Dollar)
@@ -75,6 +76,7 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 		"is_free",
 		"coalesce(preview_image, '') as preview_image",
 		"utc_offset",
+		"minimal_age",
 		"created_at",
 		"updated_at",
 	).From(eventsTable).
@@ -102,6 +104,7 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 		&event.IsFree,
 		&event.PreviewImage,
 		&event.UTCOffset,
+		&event.MinimalAge,
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
@@ -262,6 +265,14 @@ func (r *repo) UpdateEvent(ctx context.Context, event *models.Event) error {
 		return err
 	}
 
+	if len(event.Prices) == 0 {
+		sql = `delete from prices where event_id = $1`
+		_, err = tx.Exec(ctx, sql, event.ID)
+		if err != nil {
+			return err
+		}
+	}
+
 	if !event.IsFree {
 		insertBuilder := sq.Insert(pricesTable).
 			Columns("event_id", "price", "currency").
@@ -283,19 +294,19 @@ func (r *repo) UpdateEvent(ctx context.Context, event *models.Event) error {
 			if err != nil {
 				return err
 			}
-		}
 
-		insertBuilder = insertBuilder.Suffix(`ON CONFLICT (event_id, currency)
+			insertBuilder = insertBuilder.Suffix(`ON CONFLICT (event_id, currency)
         DO UPDATE SET price = EXCLUDED.price, updated_at = now()`)
 
-		sql, args, err = insertBuilder.ToSql()
-		if err != nil {
-			return err
-		}
+			sql, args, err = insertBuilder.ToSql()
+			if err != nil {
+				return err
+			}
 
-		_, err = tx.Exec(ctx, sql, args...)
-		if err != nil {
-			return err
+			_, err = tx.Exec(ctx, sql, args...)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -321,4 +332,52 @@ func (r *repo) DeleteEvent(ctx context.Context, urlTitle string) error {
 	}
 
 	return nil
+}
+
+func (r *repo) UserEvents(ctx context.Context, userID int) ([]*models.Event, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	builder := sq.Select(
+		"title",
+		"coalesce(preview_image, '')",
+		"url_title",
+		"location",
+	).
+		From(eventsTable).
+		Where(sq.Eq{"creator_id": userID}).
+		OrderBy("created_at DESC").
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builder.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*models.Event
+	for rows.Next() {
+		var event models.Event
+
+		err = rows.Scan(
+			&event.Title,
+			&event.PreviewImage,
+			&event.URLTitle,
+			&event.Location,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, &event)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return events, nil
 }

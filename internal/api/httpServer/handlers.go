@@ -48,6 +48,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	events, err := s.apiService.Events(r.Context(), page)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
@@ -60,8 +61,41 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(events, w)
 }
 
+func (s *server) myEvents(w http.ResponseWriter, r *http.Request) {
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+	id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		slog.Error("Error converting claims.Subject to int", slog.Any("error", err), slog.String("subject", claims.Subject))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	events, err := s.apiService.UserEvents(r.Context(), id)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			slog.Error("Error getting events", slog.Any("error", err))
+			utils.WriteJSONError(errInternal, w)
+			return
+		}
+	}
+
+	utils.WriteJSON(events, w)
+}
+
 func (s *server) createEvent(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(32 << 20)
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	err = r.ParseMultipartForm(32 << 20)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
@@ -83,16 +117,17 @@ func (s *server) createEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: validation
+	if event.Title == "" ||
+		event.Description == "" ||
+		event.BeginningTime.IsZero() ||
+		event.EndTime.IsZero() ||
+		event.Location == "" {
 
-	event.PreviewImage = imgs[0]
-
-	_, claims, err := s.getAndVerifyHeaderToken(r)
-	if err != nil {
-		slog.Error("Error getting claims", slog.Any("error", err))
-		utils.WriteJSONError(errInternal, w)
+		utils.WriteJSONError(errWrongInput, w, http.StatusUnprocessableEntity)
 		return
 	}
+
+	event.PreviewImage = imgs[0]
 
 	id, err := strconv.Atoi(claims.Subject)
 	if err != nil {
@@ -131,12 +166,39 @@ func (s *server) updateEvent(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(claims.Subject)
 	urlTitle := chi.URLParam(r, "url-title")
 
-	event := models.Event{URLTitle: urlTitle}
-	err = utils.ReadReqJSON(w, r, &event)
+	err = r.ParseMultipartForm(32 << 20)
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
 		return
+	}
+	imgs, err := saveMultipartImages(r, "image", s.httpConfig.StaticDir())
+	if err != nil {
+		slog.Error("Error saving event image", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	event := models.Event{URLTitle: urlTitle}
+	err = utils.ReadJSON(bytes.NewBuffer([]byte(r.Form.Get("event"))), &event)
+	if err != nil {
+		slog.Error("Error reading request body", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	if event.Title == "" ||
+		event.Description == "" ||
+		event.BeginningTime.IsZero() ||
+		event.EndTime.IsZero() ||
+		event.Location == "" {
+
+		utils.WriteJSONError(errWrongInput, w, http.StatusUnprocessableEntity)
+		return
+	}
+
+	if len(imgs) > 0 {
+		event.PreviewImage = imgs[0]
 	}
 
 	err = s.apiService.UpdateEvent(r.Context(), int64(id), &event)
@@ -160,8 +222,8 @@ func (s *server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, err := strconv.Atoi(claims.Subject)
-	urlTitle := chi.URLParam(r, "url-title")
 
+	urlTitle := chi.URLParam(r, "url-title")
 	err = s.apiService.DeleteEvent(r.Context(), int64(id), urlTitle)
 	if err != nil {
 		if errors.Is(err, service.ErrPermissionDenied) {
@@ -194,21 +256,46 @@ func (s *server) ticket(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(ticket, w)
 }
 
-func (s *server) buyTicket(w http.ResponseWriter, r *http.Request) {
-	var req models.BuyTicketRequest
-	err := utils.ReadJSON(r.Body, &req)
-	if err != nil {
-		slog.Error("Error reading request body", slog.Any("error", err))
-		utils.WriteJSONError(errInternal, w)
-		return
-	}
-
+func (s *server) userTickets(w http.ResponseWriter, r *http.Request) {
 	_, claims, err := s.getAndVerifyHeaderToken(r)
 	if err != nil {
 		slog.Error("Error getting claims", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
 		return
 	}
+	id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		slog.Error("Error converting claims.Subject to int", slog.Any("error", err), slog.String("subject", claims.Subject))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	tickets, err := s.apiService.UserTickets(r.Context(), int64(id))
+	if err != nil {
+		slog.Error("Error getting tickets", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	utils.WriteJSON(tickets, w)
+}
+
+func (s *server) buyTicket(w http.ResponseWriter, r *http.Request) {
+	_, claims, err := s.getAndVerifyHeaderToken(r)
+	if err != nil {
+		slog.Error("Error getting claims", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	var req models.BuyTicketRequest
+	err = utils.ReadJSON(r.Body, &req)
+	if err != nil {
+		slog.Error("Error reading request body", slog.Any("error", err))
+		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
 	req.UserEmail = claims.Email
 
 	url, err := s.apiService.BuyTicket(r.Context(), &req)
@@ -232,6 +319,13 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	if !utils.IsEmail(user.Email) ||
+		user.Password == "" {
+
+		utils.WriteJSONError(errWrongInput, w, http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -259,6 +353,13 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Error reading request body", slog.Any("error", err))
 		utils.WriteJSONError(errInternal, w)
+		return
+	}
+
+	if !utils.IsEmail(user.Email) ||
+		user.Password == "" {
+
+		utils.WriteJSONError(errWrongInput, w, http.StatusUnprocessableEntity)
 		return
 	}
 

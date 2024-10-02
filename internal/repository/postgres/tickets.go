@@ -88,3 +88,46 @@ func (r *repo) Ticket(ctx context.Context, ticketID string) (*models.Ticket, err
 
 	return &ticket, nil
 }
+
+func (r *repo) UserTickets(ctx context.Context, userID int64) ([]*models.Ticket, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	sql := `SELECT t.id, t.event_id, t.is_used, t.first_name, t.last_name,
+	e.title, e.beginning_time, e.preview_image FROM tickets t
+	LEFT JOIN events e ON t.event_id = e.id
+	WHERE user_id = $1`
+
+	rows, err := r.db.Query(ctx, sql, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tickets []*models.Ticket
+	for rows.Next() {
+		ticket := models.Ticket{
+			Event: &models.Event{},
+		}
+		err = rows.Scan(
+			&ticket.ID,
+			&ticket.EventID,
+			&ticket.IsUsed,
+			&ticket.FirstName,
+			&ticket.LastName,
+			&ticket.Event.Title,
+			&ticket.Event.BeginningTime,
+			&ticket.Event.PreviewImage,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		tickets = append(tickets, &ticket)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}

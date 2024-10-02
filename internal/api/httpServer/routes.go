@@ -49,6 +49,8 @@ func (s *server) setRoutes() {
 		mux.Route("/user", func(mux chi.Router) {
 			mux.Use(s.authRequired)
 
+			mux.Get("/tickets", s.userTickets)
+			mux.Get("/events", s.myEvents)
 			mux.Route("/profile", func(mux chi.Router) {
 				mux.Get("/", s.profile)
 				mux.Put("/", s.updateProfile)

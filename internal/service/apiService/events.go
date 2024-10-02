@@ -52,8 +52,20 @@ func (s *serv) CreteEvent(ctx context.Context, event *models.Event) (int64, erro
 }
 
 func (s *serv) UpdateEvent(ctx context.Context, userID int64, event *models.Event) error {
+	e, err := s.repo.EventByURLTitle(ctx, event.URLTitle)
+	if err != nil {
+		return err
+	}
+
+	if e.CreatorID != userID {
+		return service.ErrPermissionDenied
+	}
+	if len(event.Prices) == 0 {
+		event.IsFree = true
+	}
+
 	event.UpdatedAt = time.Now()
-	err := s.repo.UpdateEvent(ctx, event)
+	err = s.repo.UpdateEvent(ctx, event)
 	if err != nil {
 		return err
 	}
@@ -77,4 +89,13 @@ func (s *serv) DeleteEvent(ctx context.Context, userID int64, urlTitle string) e
 	}
 
 	return nil
+}
+
+func (s *serv) UserEvents(ctx context.Context, userID int) ([]*models.Event, error) {
+	events, err := s.repo.UserEvents(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return events, nil
 }
