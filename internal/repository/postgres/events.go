@@ -334,7 +334,7 @@ func (r *repo) DeleteEvent(ctx context.Context, urlTitle string) error {
 	return nil
 }
 
-func (r *repo) UserEvents(ctx context.Context, userID int) ([]*models.Event, error) {
+func (r *repo) UserEvents(ctx context.Context, userID int64) ([]*models.Event, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 

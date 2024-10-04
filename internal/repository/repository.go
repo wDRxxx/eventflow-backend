@@ -8,7 +8,7 @@ import (
 
 type Repository interface {
 	Events(ctx context.Context, page int) ([]*models.Event, error)
-	UserEvents(ctx context.Context, userID int) ([]*models.Event, error)
+	UserEvents(ctx context.Context, userID int64) ([]*models.Event, error)
 	EventByURLTitle(ctx context.Context, urlTitle string) (*models.Event, error)
 	InsertEvent(ctx context.Context, event *models.Event) (int64, error)
 	UpdateEvent(ctx context.Context, event *models.Event) error

@@ -28,7 +28,7 @@ func (s *serv) Events(ctx context.Context, page int) ([]*models.Event, error) {
 	return events, nil
 }
 
-func (s *serv) CreteEvent(ctx context.Context, event *models.Event) (int64, error) {
+func (s *serv) CreateEvent(ctx context.Context, event *models.Event) (int64, error) {
 	event.URLTitle = uuid.NewString()
 
 	if !event.IsFree && len(event.Prices) == 0 {
@@ -91,7 +91,7 @@ func (s *serv) DeleteEvent(ctx context.Context, userID int64, urlTitle string) e
 	return nil
 }
 
-func (s *serv) UserEvents(ctx context.Context, userID int) ([]*models.Event, error) {
+func (s *serv) UserEvents(ctx context.Context, userID int64) ([]*models.Event, error) {
 	events, err := s.repo.UserEvents(ctx, userID)
 	if err != nil {
 		return nil, err

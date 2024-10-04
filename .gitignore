@@ -1,3 +1,5 @@
 .env
 /logs
 /static
+coverage.out
+coverage.html

@@ -18,8 +18,6 @@ func (s *server) setRoutes() {
 	mux.Handle("/api/static/*", http.StripPrefix("/api/static/", fs))
 
 	mux.Route("/api", func(mux chi.Router) {
-		mux.Get("/", s.home)
-
 		mux.Route("/events", func(mux chi.Router) {
 			mux.Get("/", s.events)
 			mux.Get("/{url-title}", s.event)
@@ -36,7 +34,6 @@ func (s *server) setRoutes() {
 		mux.Route("/tickets", func(mux chi.Router) {
 			mux.Use(s.authRequired)
 
-			mux.Get("/{id}", s.ticket)
 			mux.Post("/", s.buyTicket)
 		})
 
