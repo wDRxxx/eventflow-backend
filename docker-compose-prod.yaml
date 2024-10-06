@@ -21,20 +21,11 @@ services:
     networks:
       - eventflow
 
-  migrator:
-    build:
-      context: .
-      dockerfile: migrator.Dockerfile
-    depends_on:
-      - postgres
-    networks:
-      - eventflow
-
   server:
     image: ${REGISTRY}/eventflow-backend:${TAG_NAME}
     restart: always
     depends_on:
-      - migrator
+      - postgres
     ports:
       - "${HTTP_PORT}:${HTTP_PORT}"
       - "${METRICS_PROMETHEUS_PORT}:${METRICS_PROMETHEUS_PORT}"
