@@ -5,8 +5,10 @@ import (
 	"flag"
 	"log"
 	"sync"
+	"syscall"
 
 	"github.com/wDRxxx/eventflow-backend/internal/app"
+	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/logger"
 )
 
@@ -22,9 +24,12 @@ func init() {
 
 func main() {
 	ctx := context.Background()
-	logger.SetupLogger(envLevel, logsPath)
-
 	var wg sync.WaitGroup
+
+	cl := closer.New(&wg, syscall.SIGINT, syscall.SIGTERM)
+	closer.SetGlobalCloser(cl)
+
+	logger.SetupLogger(envLevel, logsPath)
 
 	a, err := app.NewApp(ctx, &wg, envPath)
 	if err != nil {

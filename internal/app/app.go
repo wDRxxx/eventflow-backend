@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
-	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -34,9 +33,6 @@ func NewApp(ctx context.Context, wg *sync.WaitGroup, envPath string) (*App, erro
 	}
 
 	app := &App{wg: wg}
-
-	cl := closer.New(app.wg, syscall.SIGINT, syscall.SIGTERM)
-	closer.SetGlobalCloser(cl)
 
 	err = app.initDeps(ctx)
 	if err != nil {

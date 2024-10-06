@@ -32,10 +32,10 @@ func SetupLogger(envLevel string, logsPath string) {
 		)))
 
 	case "prod":
-		t := time.Now().Format("02-01-06T15-04-05")
+		t := time.Now().Format("02-01-06")
 		logFilePath := fmt.Sprintf("%s/%s.log", logsPath, t)
 
-		f, err := os.Create(logFilePath)
+		f, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			log.Fatalf("error creating new log file: %v", err)
 		}
@@ -45,7 +45,7 @@ func SetupLogger(envLevel string, logsPath string) {
 		})
 
 		h := slog.NewJSONHandler(f, &slog.HandlerOptions{
-			Level: slog.LevelWarn,
+			Level: slog.LevelInfo,
 		})
 
 		logger = slog.New(slogx.Accumulator(slogx.NewChain(h,

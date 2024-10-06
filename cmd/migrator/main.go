@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/joho/godotenv"
@@ -33,7 +34,12 @@ func main() {
 	}
 
 	connectionURL := mustConnectionURL()
-	m, err := migrate.New("file://"+migrationsPath, connectionURL)
+
+	var m *migrate.Migrate
+	for range 10 {
+		time.Sleep(1 * time.Second)
+		m, err = migrate.New("file://"+migrationsPath, connectionURL)
+	}
 	if err != nil {
 		log.Fatalf("error creating migrator: %v", err)
 	}

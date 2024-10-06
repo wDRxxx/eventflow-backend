@@ -1,4 +1,5 @@
-.env
+/.env
+/prod.env
 /logs
 /static
 coverage.out

@@ -10,6 +10,7 @@ networks:
 services:
   loki:
     image: grafana/loki:2.9.2
+    restart: always
     ports:
       - "3100:3100"
     volumes:
@@ -20,6 +21,7 @@ services:
 
   promtail:
     image: grafana/promtail:2.9.2
+    restart: always
     volumes:
       - ../logs:/eventflow/logs
       - ./promtail/config.yaml:/etc/promtail/config.yml
@@ -31,8 +33,9 @@ services:
 
   grafana:
     image: grafana/grafana:11.2.2
+    restart: always
     ports:
-      - "5000:3000"
+      - "6000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:

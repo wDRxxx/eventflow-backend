@@ -1,0 +1,72 @@
+name: CI
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master]
+  workflow_dispatch:
+
+
+env:
+  IMAGE_NAME: "eventflow-backend"
+  COMPOSE_PROJECT_NAME: "eventflow_backend"
+
+jobs:
+  image-build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Registry
+        run: docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} ${{ secrets.REGISTRY }}
+
+      - name: Create prod.env file
+        run: |
+          echo "${{ secrets.PROD_ENV }}" >> prod.env
+
+      - name: Build and Push Docker image
+        run: |
+          TAG_NAME=$(echo $GITHUB_SHA | head -c7)
+          docker buildx create --use
+          docker buildx build --no-cache --push --tag ${{ secrets.REGISTRY }}/$IMAGE_NAME:$TAG_NAME -f Dockerfile .
+
+  deploy-image:
+    runs-on: ubuntu-latest
+    needs: image-build-and-push
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy docker-compose required files to remote
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSHKEY }}
+          source: "docker-compose-prod.yaml,Dockerfile,migrator.Dockerfile"
+          target: /home/${{ secrets.SSH_USERNAME }}/eventflow/backend
+
+      - name: Deploy via SSH connection
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSHKEY }}
+          envs: IMAGE_NAME,REGISTRY,GITHUB_SHA,COMPOSE_PROJECT_NAME
+          script: |
+            # Set up variables
+            TAG_NAME=$(echo $GITHUB_SHA | head -c7)
+
+            # Login into Registry
+            sudo docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} ${{ secrets.REGISTRY }}
+            
+            # Create prod.env
+            echo "${{ secrets.PROD_ENV }}" >> ./eventflow/backend/prod.env
+            
+            # Run a new container from docker-compose
+            sudo TAG_NAME=$TAG_NAME REGISTRY=${{ secrets.REGISTRY }} docker compose -f ./eventflow/backend/docker-compose-prod.yaml --env-file ./eventflow/backend/prod.env up -d --build --force-recreate

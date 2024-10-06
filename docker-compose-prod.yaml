@@ -1,0 +1,53 @@
+version: '3'
+
+volumes:
+  postgres_data:
+
+networks:
+  eventflow:
+
+services:
+  postgres:
+    image: postgres:16.2-alpine
+    restart: always
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - eventflow
+
+  migrator:
+    build:
+      context: .
+      dockerfile: migrator.Dockerfile
+    depends_on:
+      - postgres
+    networks:
+      - eventflow
+
+  server:
+    image: ${REGISTRY}/eventflow-backend:${TAG_NAME}
+    restart: always
+    depends_on:
+      - migrator
+    ports:
+      - "${HTTP_PORT}:${HTTP_PORT}"
+      - "${METRICS_PROMETHEUS_PORT}:${METRICS_PROMETHEUS_PORT}"
+    volumes:
+      - ./logs:/eventflow/logs/
+      - ./templates:/eventflow/source/templates
+      - ./migrations:/eventflow/source/migrations
+    networks:
+      - eventflow
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: always
+    ports:
+      - "8025:8025"
+      - "${MAILER_PORT}:1025"
