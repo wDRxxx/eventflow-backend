@@ -9,6 +9,8 @@ For observability, EventFlow includes monitoring and logging
 through Grafana, Prometheus, and Grafana Loki. 
 The repository also includes tests for api and service layer.
 
+# Live demo
+https://eventflow.wdrxxx.online\
 **If you want to test payments, use test card from [here](https://yookassa.ru/developers/payment-acceptance/testing-and-going-live/testing?lang=en)**
 
 ## Features
