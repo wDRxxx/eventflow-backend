@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/joho/godotenv"
-
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -39,6 +39,9 @@ func main() {
 	for range 10 {
 		time.Sleep(1 * time.Second)
 		m, err = migrate.New("file://"+migrationsPath, connectionURL)
+		if err == nil {
+			break
+		}
 	}
 	if err != nil {
 		log.Fatalf("error creating migrator: %v", err)
@@ -46,16 +49,13 @@ func main() {
 
 	if action != "up" {
 		err = m.Down()
-		if err != nil {
-			log.Fatalf("error while migrating: %v", err)
-		}
 
 		log.Println("migrations were applied successfully!")
 		return
 	}
 
 	err = m.Up()
-	if err != nil {
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatalf("error while migrating: %v", err)
 	}
 	log.Println("migrations were applied successfully!")
