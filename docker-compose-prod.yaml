@@ -33,6 +33,7 @@ services:
       - ./logs:/eventflow/logs/
       - ./templates:/eventflow/source/templates
       - ./migrations:/eventflow/source/migrations
+      - ./static:/eventflow/source/static
     networks:
       - eventflow
 
