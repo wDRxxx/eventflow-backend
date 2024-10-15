@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 	yoomodels "github.com/wDRxxx/yookassa-go-sdk/yookassa/models"
 	yoopayment "github.com/wDRxxx/yookassa-go-sdk/yookassa/models/payment"
 
@@ -47,7 +48,7 @@ func (s *serv) checkPaymentStatus(ticketPayment *models.TicketPayment) error {
 	for {
 		select {
 		case <-ticker.C:
-			payment, err := s.yooClient.PaymentInfo(ticketPayment.Payment.ID)
+			payment, err := ticketPayment.YooClient.PaymentInfo(ticketPayment.Payment.ID)
 			if err != nil {
 				return err
 			}
@@ -115,6 +116,7 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 		}
 	}
 
+	yooClient := yookassa.NewClient(event.ShopID, event.ShopKey)
 	payment := &yoopayment.Payment{
 		Amount: amount,
 		PaymentMethodData: &yoopayment.PaymentMethodData{
@@ -138,7 +140,7 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 		Capture: true,
 	}
 
-	respPayment, err := s.yooClient.CreatePayment(payment)
+	respPayment, err := yooClient.CreatePayment(payment)
 	if err != nil {
 		return "", err
 	}
@@ -149,6 +151,7 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 		User:             user,
 		Event:            event,
 		Ctx:              ctx,
+		YooClient:        yooClient,
 	}
 
 	return respPayment.Confirmation.ConfirmationURL, nil

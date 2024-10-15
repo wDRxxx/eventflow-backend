@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 	yoopayment "github.com/wDRxxx/yookassa-go-sdk/yookassa/models/payment"
 )
 
@@ -44,6 +45,9 @@ type Event struct {
 
 	CreatedAt time.Time `json:"-" db:"created_at"`
 	UpdatedAt time.Time `json:"-" db:"updated_at"`
+
+	ShopID  string `json:"-"`
+	ShopKey string `json:"-"`
 }
 
 type Price struct {
@@ -83,4 +87,6 @@ type TicketPayment struct {
 	User             *User
 	Event            *Event
 	Ctx              context.Context
+
+	YooClient *yookassa.Client
 }

@@ -64,22 +64,25 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 	defer cancel()
 
 	builder := sq.Select(
-		"id",
-		"title",
-		"description",
-		"capacity",
-		"beginning_time",
-		"end_time",
-		"creator_id",
-		"is_public",
-		"location",
-		"is_free",
-		"coalesce(preview_image, '') as preview_image",
-		"utc_offset",
-		"minimal_age",
-		"created_at",
-		"updated_at",
-	).From(eventsTable).
+		"e.id",
+		"e.title",
+		"e.description",
+		"e.capacity",
+		"e.beginning_time",
+		"e.end_time",
+		"e.creator_id",
+		"e.is_public",
+		"e.location",
+		"e.is_free",
+		"coalesce(e.preview_image, '') as preview_image",
+		"e.utc_offset",
+		"e.minimal_age",
+		"e.created_at",
+		"e.updated_at",
+		"coalesce(s.shop_id, '') as shop_id",
+		"coalesce(s.shop_key, '') as shop_key",
+	).From(eventsTable + " e").
+		LeftJoin(yookassaSettingsTable + " s ON e.creator_id = s.user_id").
 		Where(sq.Eq{"url_title": urlTitle}).
 		PlaceholderFormat(sq.Dollar)
 
@@ -107,6 +110,8 @@ func (r *repo) EventByURLTitle(ctx context.Context, urlTitle string) (*models.Ev
 		&event.MinimalAge,
 		&event.CreatedAt,
 		&event.UpdatedAt,
+		&event.ShopID,
+		&event.ShopKey,
 	)
 	if err != nil {
 		return nil, err

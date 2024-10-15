@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 
 	"github.com/wDRxxx/eventflow-backend/internal/api"
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
@@ -26,7 +25,6 @@ type serviceProvider struct {
 	httpConfig     *config.HttpConfig
 	postgresConfig *config.PostgresConfig
 	authConfig     *config.AuthConfig
-	yooConfig      *config.YookassaConfig
 	mailerConfig   *config.MailerConfig
 	metricsConfig  *config.MetricsConfig
 
@@ -34,8 +32,7 @@ type serviceProvider struct {
 	apiService service.ApiService
 	httpServer api.HTTPServer
 
-	yooClient *yookassa.Client
-	mailer    mailer.Mailer
+	mailer mailer.Mailer
 }
 
 func newServiceProvider() *serviceProvider {
@@ -63,14 +60,6 @@ func (s *serviceProvider) AuthConfig() *config.AuthConfig {
 	}
 
 	return s.authConfig
-}
-
-func (s *serviceProvider) YookassaConfig() *config.YookassaConfig {
-	if s.yooConfig == nil {
-		s.yooConfig = config.NewYookassaConfig()
-	}
-
-	return s.yooConfig
 }
 
 func (s *serviceProvider) MailerConfig() *config.MailerConfig {
@@ -118,7 +107,6 @@ func (s *serviceProvider) ApiService(ctx context.Context, wg *sync.WaitGroup) se
 			wg,
 			s.Repository(ctx),
 			s.AuthConfig(),
-			s.YookassaClient(),
 			s.Mailer(wg),
 		)
 	}
@@ -132,17 +120,6 @@ func (s *serviceProvider) HTTPServer(ctx context.Context, wg *sync.WaitGroup) ap
 	}
 
 	return s.httpServer
-}
-
-func (s *serviceProvider) YookassaClient() *yookassa.Client {
-	if s.yooClient == nil {
-		s.yooClient = yookassa.NewClient(
-			s.YookassaConfig().ShopID(),
-			s.YookassaConfig().ShopKey(),
-		)
-	}
-
-	return s.yooClient
 }
 
 func (s *serviceProvider) Mailer(wg *sync.WaitGroup) mailer.Mailer {

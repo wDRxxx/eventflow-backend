@@ -3,7 +3,6 @@ package apiService
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -41,7 +40,6 @@ func (s *serv) Login(ctx context.Context, user *models.User) (string, error) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
 	if err != nil {
-		log.Println(err)
 		return "", service.ErrWrongCredentials
 	}
 
