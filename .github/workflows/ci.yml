@@ -1,11 +1,10 @@
 name: CI
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, ci-fixes ]
   pull_request:
-    branches: [ main, master]
+    branches: [ main, master, ci-fixes]
   workflow_dispatch:
-
 
 env:
   IMAGE_NAME: "eventflow-backend"
@@ -42,7 +41,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy docker-compose required files to remote
+      # getting error when trying to copy folders
+      - name: Copy required files to remote
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -63,10 +63,10 @@ jobs:
             TAG_NAME=$(echo $GITHUB_SHA | head -c7)
 
             # Login into Registry
-            sudo docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} ${{ secrets.REGISTRY }}
+            sudo docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} ${{ secrets.LOCAL_REGISTRY }}
             
             # Create prod.env
             echo "${{ secrets.PROD_ENV }}" >> ./eventflow/backend/prod.env
             
             # Run a new container from docker-compose
-            sudo TAG_NAME=$TAG_NAME REGISTRY=${{ secrets.REGISTRY }} docker compose -f ./eventflow/backend/docker-compose-prod.yaml --env-file ./eventflow/backend/prod.env up -d --build --force-recreate
+            sudo TAG_NAME=$TAG_NAME REGISTRY=${{ secrets.LOCAL_REGISTRY }} docker compose -f ./eventflow/backend/docker-compose-prod.yaml --env-file ./eventflow/backend/prod.env up -d --build --force-recreate

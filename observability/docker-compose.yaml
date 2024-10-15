@@ -57,7 +57,7 @@ services:
           access: proxy 
           basicAuth: false
           orgId: 1
-          url: http://host.docker.internal:3100
+          url: http://loki:3100
           isDefault: false
           version: 1
           editable: true
@@ -66,7 +66,7 @@ services:
           access: proxy 
           basicAuth: false
           orgId: 1
-          url: http://host.docker.internal:9090
+          url: http://prometheus:9090
           isDefault: false
           version: 1
           editable: true
@@ -75,6 +75,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.37.9
+    restart: always
     networks:
       - grafana
     ports:
@@ -83,4 +84,5 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ./alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
