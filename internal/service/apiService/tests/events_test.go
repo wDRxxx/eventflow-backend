@@ -10,7 +10,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
@@ -34,7 +33,6 @@ func TestEvent(t *testing.T) {
 
 		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = &yookassa.Client{}
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr  = errors.New("repo err")
@@ -93,7 +91,7 @@ func TestEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			event, err := service.Event(ctx, urlTitle)
 
 			require.Equal(t, tt.want, event)
@@ -114,7 +112,6 @@ func TestEvents(t *testing.T) {
 
 		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = &yookassa.Client{}
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -173,7 +170,7 @@ func TestEvents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			event, err := service.Events(ctx, page)
 
 			require.Equal(t, tt.want, event)
@@ -194,7 +191,6 @@ func TestCreateEvent(t *testing.T) {
 
 		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = &yookassa.Client{}
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -319,7 +315,7 @@ func TestCreateEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			eventID, err := service.CreateEvent(ctx, tt.event)
 
 			require.Equal(t, tt.want, eventID)
@@ -340,7 +336,6 @@ func TestUpdateEvent(t *testing.T) {
 
 		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = &yookassa.Client{}
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -471,7 +466,7 @@ func TestUpdateEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			err := service.UpdateEvent(ctx, userID, tt.event)
 
 			require.Equal(t, tt.err, err)
@@ -491,7 +486,6 @@ func TestDeleteEvent(t *testing.T) {
 
 		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = &yookassa.Client{}
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -565,7 +559,7 @@ func TestDeleteEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			err := service.DeleteEvent(ctx, tt.userID, urlTitle)
 
 			require.Equal(t, tt.err, err)
@@ -585,7 +579,6 @@ func TestUserEvents(t *testing.T) {
 
 		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = &yookassa.Client{}
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -644,7 +637,7 @@ func TestUserEvents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			event, err := service.UserEvents(ctx, userID)
 
 			require.Equal(t, tt.want, event)

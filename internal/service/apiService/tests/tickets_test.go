@@ -10,7 +10,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
@@ -32,9 +31,7 @@ func _TestBuyTicket(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		ticketID = gofakeit.UUID()
@@ -108,7 +105,7 @@ func _TestBuyTicket(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			id, err := service.BuyTicket(ctx, req)
 
 			require.Equal(t, tt.want, id)
@@ -128,9 +125,7 @@ func TestTicket(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -180,7 +175,7 @@ func TestTicket(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			ticket, err := service.Ticket(ctx, ticketID)
 
 			require.Equal(t, tt.want, ticket)
@@ -200,9 +195,7 @@ func TestUserTickets(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -256,7 +249,7 @@ func TestUserTickets(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			ticket, err := service.UserTickets(ctx, userID)
 
 			require.Equal(t, tt.want, ticket)

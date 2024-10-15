@@ -11,7 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"github.com/wDRxxx/yookassa-go-sdk/yookassa"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
@@ -36,9 +35,7 @@ func TestRegisterUser(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -92,7 +89,7 @@ func TestRegisterUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			err := service.RegisterUser(ctx, user)
 
 			require.Equal(t, tt.err, err)
@@ -111,9 +108,7 @@ func TestLogin(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -177,7 +172,7 @@ func TestLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			_, err := service.Login(ctx, user)
 
 			require.Equal(t, tt.err, err)
@@ -196,9 +191,7 @@ func TestAccessToken(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -249,7 +242,7 @@ func TestAccessToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			_, err := service.AccessToken(ctx, tt.token)
 
 			if tt.err != nil {
@@ -272,9 +265,7 @@ func TestUser(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -325,7 +316,7 @@ func TestUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			u, err := service.User(ctx, userEmail)
 
 			require.Equal(t, tt.want, u)
@@ -345,9 +336,7 @@ func TestUpdateUser(t *testing.T) {
 		mc  = minimock.NewController(t)
 
 		authCfg   = config.NewAuthConfig()
-		yooCfg    = config.NewYookassaConfig()
 		mailerCfg = config.NewMailerConfig()
-		yooClient = yookassa.NewClient(yooCfg.ShopID(), yooCfg.ShopKey())
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
@@ -411,7 +400,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, yooClient, mail)
+			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
 			err := service.UpdateUser(ctx, user)
 
 			require.Equal(t, tt.err, err)
