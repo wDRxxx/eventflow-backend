@@ -1,4 +1,4 @@
-package apiService
+package usersService
 
 import (
 	"context"
@@ -7,12 +7,31 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
+	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
 )
 
-func (s *serv) RegisterUser(ctx context.Context, user *models.User) error {
+type usersServ struct {
+	repo       repository.Repository
+	authConfig *config.AuthConfig
+}
+
+func NewUsersService(
+	repo repository.Repository,
+	authConfig *config.AuthConfig,
+) service.UsersService {
+	s := &usersServ{
+		repo:       repo,
+		authConfig: authConfig,
+	}
+
+	return s
+}
+
+func (s *usersServ) RegisterUser(ctx context.Context, user *models.User) error {
 	_, err := s.repo.User(ctx, user.Email)
 	if err == nil {
 		return service.ErrUserAlreadyExists
@@ -32,7 +51,7 @@ func (s *serv) RegisterUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (s *serv) Login(ctx context.Context, user *models.User) (string, error) {
+func (s *usersServ) Login(ctx context.Context, user *models.User) (string, error) {
 	u, err := s.repo.User(ctx, user.Email)
 	if err != nil {
 		return "", service.ErrWrongCredentials
@@ -60,7 +79,7 @@ func (s *serv) Login(ctx context.Context, user *models.User) (string, error) {
 	return accessToken, nil
 }
 
-func (s *serv) AccessToken(ctx context.Context, refreshToken string) (string, error) {
+func (s *usersServ) AccessToken(ctx context.Context, refreshToken string) (string, error) {
 	claims, err := utils.VerifyToken(refreshToken, s.authConfig.RefreshTokenSecret())
 	if err != nil {
 		return "", err
@@ -78,7 +97,7 @@ func (s *serv) AccessToken(ctx context.Context, refreshToken string) (string, er
 	return accessToken, nil
 }
 
-func (s *serv) User(ctx context.Context, userEmail string) (*models.User, error) {
+func (s *usersServ) User(ctx context.Context, userEmail string) (*models.User, error) {
 	user, err := s.repo.User(ctx, userEmail)
 	if err != nil {
 		return nil, err
@@ -87,7 +106,7 @@ func (s *serv) User(ctx context.Context, userEmail string) (*models.User, error)
 	return user, nil
 }
 
-func (s *serv) UpdateUser(ctx context.Context, user *models.User) error {
+func (s *usersServ) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.TGUsername != "" {
 		err := s.repo.UpdateUserTGUsername(ctx, user.ID, user.TGUsername)
 		if err != nil {

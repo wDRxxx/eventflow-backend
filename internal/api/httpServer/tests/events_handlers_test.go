@@ -27,7 +27,7 @@ import (
 func TestEvents(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 	var (
 		authCfg = config.NewAuthConfig()
 		httpCfg = config.NewHttpConfig()
@@ -72,8 +72,8 @@ func TestEvents(t *testing.T) {
 			want:       events,
 			err:        nil,
 			statusCode: http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.EventsMock.Expect(minimock.AnyContext, page).Return(events, nil)
 				return mock
 			},
@@ -83,8 +83,8 @@ func TestEvents(t *testing.T) {
 			want:       nil,
 			err:        nil,
 			statusCode: http.StatusBadRequest,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				return mock
 			},
 		},
@@ -93,8 +93,8 @@ func TestEvents(t *testing.T) {
 			want:       nil,
 			err:        serviceErr,
 			statusCode: http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.EventsMock.Expect(minimock.AnyContext, page).Return(nil, serviceErr)
 				return mock
 			},
@@ -107,9 +107,12 @@ func TestEvents(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				apiServiceMock,
+				nil,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -149,7 +152,7 @@ func TestEvents(t *testing.T) {
 func TestMyEvents(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -202,8 +205,8 @@ func TestMyEvents(t *testing.T) {
 			want:         nil,
 			isAuthorized: false,
 			statusCode:   http.StatusUnauthorized,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				return mock
 			},
 		},
@@ -213,8 +216,8 @@ func TestMyEvents(t *testing.T) {
 			isAuthorized: true,
 			err:          nil,
 			statusCode:   http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.UserEventsMock.Expect(minimock.AnyContext, creatorID).Return(events, nil)
 				return mock
 			},
@@ -225,8 +228,8 @@ func TestMyEvents(t *testing.T) {
 			isAuthorized: true,
 			err:          serviceErr,
 			statusCode:   http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.UserEventsMock.Expect(minimock.AnyContext, creatorID).Return(nil, serviceErr)
 				return mock
 			},
@@ -239,9 +242,12 @@ func TestMyEvents(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				apiServiceMock,
+				nil,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -275,7 +281,7 @@ func TestMyEvents(t *testing.T) {
 func TestEvent(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -317,8 +323,8 @@ func TestEvent(t *testing.T) {
 			name:       "success case",
 			want:       event,
 			statusCode: http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.EventMock.Expect(minimock.AnyContext, urlTitle).Return(event, nil)
 				return mock
 			},
@@ -327,8 +333,8 @@ func TestEvent(t *testing.T) {
 			name:       "not found case",
 			want:       nil,
 			statusCode: http.StatusNotFound,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.EventMock.Expect(minimock.AnyContext, urlTitle).Return(nil, pgx.ErrNoRows)
 				return mock
 			},
@@ -337,8 +343,8 @@ func TestEvent(t *testing.T) {
 			name:       "failure case",
 			want:       nil,
 			statusCode: http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.EventMock.Expect(minimock.AnyContext, urlTitle).Return(nil, serviceErr)
 				return mock
 			},
@@ -351,9 +357,12 @@ func TestEvent(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				apiServiceMock,
+				nil,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -380,7 +389,7 @@ func TestEvent(t *testing.T) {
 func TestCreateEvent(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -449,8 +458,8 @@ func TestCreateEvent(t *testing.T) {
 			isAuthorized: false,
 			event:        event,
 			statusCode:   http.StatusUnauthorized,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				return mock
 			},
 		},
@@ -463,8 +472,8 @@ func TestCreateEvent(t *testing.T) {
 			isAuthorized: true,
 			event:        event,
 			statusCode:   http.StatusCreated,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.CreateEventMock.Expect(minimock.AnyContext, event).Return(id, nil)
 				return mock
 			},
@@ -475,8 +484,8 @@ func TestCreateEvent(t *testing.T) {
 			isAuthorized: true,
 			event:        event,
 			statusCode:   http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.CreateEventMock.Expect(minimock.AnyContext, event).Return(0, serviceErr)
 				return mock
 			},
@@ -487,8 +496,8 @@ func TestCreateEvent(t *testing.T) {
 			isAuthorized: true,
 			event:        wrongEvent,
 			statusCode:   http.StatusUnprocessableEntity,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				return mock
 			},
 		},
@@ -500,9 +509,12 @@ func TestCreateEvent(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				apiServiceMock,
+				nil,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -542,7 +554,7 @@ func TestCreateEvent(t *testing.T) {
 func TestUpdateEvent(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -594,8 +606,8 @@ func TestUpdateEvent(t *testing.T) {
 			want:         nil,
 			isAuthorized: false,
 			statusCode:   http.StatusUnauthorized,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				return mock
 			},
 		},
@@ -607,8 +619,8 @@ func TestUpdateEvent(t *testing.T) {
 			},
 			isAuthorized: true,
 			statusCode:   http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.UpdateEventMock.Expect(minimock.AnyContext, creatorID, event).Return(nil)
 				return mock
 			},
@@ -618,8 +630,8 @@ func TestUpdateEvent(t *testing.T) {
 			want:         nil,
 			isAuthorized: true,
 			statusCode:   http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.UpdateEventMock.Expect(minimock.AnyContext, creatorID, event).Return(serviceErr)
 				return mock
 			},
@@ -632,9 +644,12 @@ func TestUpdateEvent(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				apiServiceMock,
+				nil,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -674,7 +689,7 @@ func TestUpdateEvent(t *testing.T) {
 func TestDeleteEvent(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -726,8 +741,8 @@ func TestDeleteEvent(t *testing.T) {
 			want:         nil,
 			isAuthorized: false,
 			statusCode:   http.StatusUnauthorized,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				return mock
 			},
 		},
@@ -739,8 +754,8 @@ func TestDeleteEvent(t *testing.T) {
 			},
 			isAuthorized: true,
 			statusCode:   http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.DeleteEventMock.Expect(minimock.AnyContext, creatorID, urlTitle).Return(nil)
 				return mock
 			},
@@ -750,8 +765,8 @@ func TestDeleteEvent(t *testing.T) {
 			want:         nil,
 			isAuthorized: true,
 			statusCode:   http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.EventsService {
+				mock := mocks.NewEventsServiceMock(mc)
 				mock.DeleteEventMock.Expect(minimock.AnyContext, creatorID, urlTitle).Return(serviceErr)
 				return mock
 			},
@@ -764,9 +779,12 @@ func TestDeleteEvent(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				apiServiceMock,
+				nil,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()

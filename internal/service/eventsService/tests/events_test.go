@@ -11,14 +11,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	"github.com/wDRxxx/eventflow-backend/internal/service/eventsService"
+
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
-	"github.com/wDRxxx/eventflow-backend/internal/config"
-	"github.com/wDRxxx/eventflow-backend/internal/mailer/smtp"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/mocks"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
-	"github.com/wDRxxx/eventflow-backend/internal/service/apiService"
 )
 
 func TestEvent(t *testing.T) {
@@ -30,10 +29,6 @@ func TestEvent(t *testing.T) {
 		wg  = &sync.WaitGroup{}
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
-
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr  = errors.New("repo err")
 		urlTitle = gofakeit.UUID()
@@ -91,7 +86,7 @@ func TestEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := eventsService.NewEventsService(repositoryMock)
 			event, err := service.Event(ctx, urlTitle)
 
 			require.Equal(t, tt.want, event)
@@ -109,10 +104,6 @@ func TestEvents(t *testing.T) {
 		wg  = &sync.WaitGroup{}
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
-
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
 		page    = gofakeit.Int()
@@ -170,7 +161,7 @@ func TestEvents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := eventsService.NewEventsService(repositoryMock)
 			event, err := service.Events(ctx, page)
 
 			require.Equal(t, tt.want, event)
@@ -188,10 +179,6 @@ func TestCreateEvent(t *testing.T) {
 		wg  = &sync.WaitGroup{}
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
-
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
 
@@ -315,7 +302,7 @@ func TestCreateEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := eventsService.NewEventsService(repositoryMock)
 			eventID, err := service.CreateEvent(ctx, tt.event)
 
 			require.Equal(t, tt.want, eventID)
@@ -333,10 +320,6 @@ func TestUpdateEvent(t *testing.T) {
 		wg  = &sync.WaitGroup{}
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
-
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
 
@@ -466,7 +449,7 @@ func TestUpdateEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := eventsService.NewEventsService(repositoryMock)
 			err := service.UpdateEvent(ctx, userID, tt.event)
 
 			require.Equal(t, tt.err, err)
@@ -483,10 +466,6 @@ func TestDeleteEvent(t *testing.T) {
 		wg  = &sync.WaitGroup{}
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
-
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
 
@@ -559,7 +538,7 @@ func TestDeleteEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := eventsService.NewEventsService(repositoryMock)
 			err := service.DeleteEvent(ctx, tt.userID, urlTitle)
 
 			require.Equal(t, tt.err, err)
@@ -576,10 +555,6 @@ func TestUserEvents(t *testing.T) {
 		wg  = &sync.WaitGroup{}
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
-
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
 		repoErr = errors.New("repo err")
 		userID  = gofakeit.Int64()
@@ -637,7 +612,7 @@ func TestUserEvents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := eventsService.NewEventsService(repositoryMock)
 			event, err := service.UserEvents(ctx, userID)
 
 			require.Equal(t, tt.want, event)

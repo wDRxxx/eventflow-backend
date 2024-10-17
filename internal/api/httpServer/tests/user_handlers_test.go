@@ -26,7 +26,7 @@ import (
 func TestRegister(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -66,8 +66,8 @@ func TestRegister(t *testing.T) {
 			},
 			user:       user,
 			statusCode: http.StatusCreated,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.RegisterUserMock.Expect(minimock.AnyContext, user).Return(nil)
 				return mock
 			},
@@ -77,8 +77,8 @@ func TestRegister(t *testing.T) {
 			want:       nil,
 			user:       user,
 			statusCode: http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.RegisterUserMock.Expect(minimock.AnyContext, user).Return(serviceErr)
 				return mock
 			},
@@ -88,8 +88,8 @@ func TestRegister(t *testing.T) {
 			want:       nil,
 			user:       wrongUser,
 			statusCode: http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.RegisterUserMock.Expect(minimock.AnyContext, wrongUser).Return(serviceErr)
 				return mock
 			},
@@ -99,8 +99,8 @@ func TestRegister(t *testing.T) {
 			want:       nil,
 			user:       wrongUser,
 			statusCode: http.StatusConflict,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.RegisterUserMock.Expect(minimock.AnyContext, wrongUser).Return(service.ErrUserAlreadyExists)
 				return mock
 			},
@@ -112,9 +112,12 @@ func TestRegister(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				nil,
+				apiServiceMock,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -144,7 +147,7 @@ func TestRegister(t *testing.T) {
 func TestLogin(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -187,8 +190,8 @@ func TestLogin(t *testing.T) {
 			},
 			user:       user,
 			statusCode: http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.LoginMock.Expect(minimock.AnyContext, user).Return(refreshToken, nil)
 				mock.AccessTokenMock.Expect(minimock.AnyContext, refreshToken).Return(accessToken, nil)
 				return mock
@@ -199,8 +202,8 @@ func TestLogin(t *testing.T) {
 			want:       nil,
 			user:       user,
 			statusCode: http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.LoginMock.Expect(minimock.AnyContext, user).Return("", serviceErr)
 				return mock
 			},
@@ -210,8 +213,8 @@ func TestLogin(t *testing.T) {
 			want:       nil,
 			user:       wrongUser,
 			statusCode: http.StatusUnauthorized,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.LoginMock.Expect(minimock.AnyContext, wrongUser).Return("", service.ErrWrongCredentials)
 				return mock
 			},
@@ -223,9 +226,12 @@ func TestLogin(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				nil,
+				apiServiceMock,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -255,7 +261,7 @@ func TestLogin(t *testing.T) {
 func TestRefresh(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -289,8 +295,8 @@ func TestRefresh(t *testing.T) {
 			},
 			hasCookie:  true,
 			statusCode: http.StatusOK,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.AccessTokenMock.Expect(minimock.AnyContext, refreshToken).Return(accessToken, nil)
 				return mock
 			},
@@ -300,8 +306,8 @@ func TestRefresh(t *testing.T) {
 			want:       nil,
 			hasCookie:  true,
 			statusCode: http.StatusInternalServerError,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.AccessTokenMock.Expect(minimock.AnyContext, refreshToken).Return("", serviceErr)
 				return mock
 			},
@@ -311,8 +317,8 @@ func TestRefresh(t *testing.T) {
 			want:       nil,
 			hasCookie:  false,
 			statusCode: http.StatusUnauthorized,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				return mock
 			},
 		},
@@ -323,9 +329,12 @@ func TestRefresh(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				nil,
+				apiServiceMock,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -357,7 +366,7 @@ func TestRefresh(t *testing.T) {
 func TestLogout(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -381,8 +390,8 @@ func TestLogout(t *testing.T) {
 			name:       "success case",
 			want:       "",
 			statusCode: http.StatusAccepted,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				return mock
 			},
 		},
@@ -393,9 +402,12 @@ func TestLogout(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				nil,
+				apiServiceMock,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -417,7 +429,7 @@ func TestLogout(t *testing.T) {
 func TestProfile(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -457,8 +469,8 @@ func TestProfile(t *testing.T) {
 			want:         user,
 			statusCode:   http.StatusOK,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.UserMock.Expect(minimock.AnyContext, userEmail).Return(user, nil)
 				return mock
 			},
@@ -468,8 +480,8 @@ func TestProfile(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusInternalServerError,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.UserMock.Expect(minimock.AnyContext, userEmail).Return(nil, serviceErr)
 				return mock
 			},
@@ -479,8 +491,8 @@ func TestProfile(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusUnauthorized,
 			isAuthorized: false,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				return mock
 			},
 		},
@@ -491,9 +503,12 @@ func TestProfile(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				nil,
+				apiServiceMock,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -523,7 +538,7 @@ func TestProfile(t *testing.T) {
 func TestUpdateProfile(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -567,8 +582,8 @@ func TestUpdateProfile(t *testing.T) {
 			},
 			statusCode:   http.StatusOK,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.UpdateUserMock.Expect(minimock.AnyContext, user).Return(nil)
 				return mock
 			},
@@ -578,8 +593,8 @@ func TestUpdateProfile(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusInternalServerError,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				mock.UpdateUserMock.Expect(minimock.AnyContext, user).Return(serviceErr)
 				return mock
 			},
@@ -589,8 +604,8 @@ func TestUpdateProfile(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusUnauthorized,
 			isAuthorized: false,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
+				mock := mocks.NewUsersServiceMock(mc)
 				return mock
 			},
 		},
@@ -601,9 +616,12 @@ func TestUpdateProfile(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				nil,
+				apiServiceMock,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()

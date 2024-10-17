@@ -1,9 +1,10 @@
-package apiService
+package ticketsService
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,11 +13,60 @@ import (
 	yoomodels "github.com/wDRxxx/yookassa-go-sdk/yookassa/models"
 	yoopayment "github.com/wDRxxx/yookassa-go-sdk/yookassa/models/payment"
 
+	"github.com/wDRxxx/eventflow-backend/internal/closer"
+	"github.com/wDRxxx/eventflow-backend/internal/config"
+	"github.com/wDRxxx/eventflow-backend/internal/mailer"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
+	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 )
 
-func (s *serv) listenForPayments() {
+type ticketsServ struct {
+	wg *sync.WaitGroup
+
+	repo       repository.Repository
+	authConfig *config.AuthConfig
+
+	paymentsChan chan *models.TicketPayment
+	doneChan     chan struct{}
+
+	mailer mailer.Mailer
+}
+
+func NewTicketsService(
+	wg *sync.WaitGroup,
+	repo repository.Repository,
+	mailer mailer.Mailer,
+) service.TicketsService {
+	s := &ticketsServ{
+		wg:           wg,
+		repo:         repo,
+		paymentsChan: make(chan *models.TicketPayment),
+		doneChan:     make(chan struct{}),
+		mailer:       mailer,
+	}
+
+	closer.Add(1, func() error {
+		slog.Info("sending done signal to tickets service...")
+		s.doneChan <- struct{}{}
+
+		return nil
+	})
+
+	closer.Add(2, func() error {
+		slog.Info("closing tickets service channels...")
+		close(s.paymentsChan)
+		close(s.doneChan)
+
+		return nil
+	})
+
+	go s.listenForPayments()
+
+	return s
+}
+
+func (s *ticketsServ) listenForPayments() {
 	for {
 		select {
 		case ticketPayment := <-s.paymentsChan:
@@ -38,7 +88,7 @@ func (s *serv) listenForPayments() {
 	}
 }
 
-func (s *serv) checkPaymentStatus(ticketPayment *models.TicketPayment) error {
+func (s *ticketsServ) checkPaymentStatus(ticketPayment *models.TicketPayment) error {
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
@@ -79,7 +129,7 @@ func (s *serv) checkPaymentStatus(ticketPayment *models.TicketPayment) error {
 	}
 }
 
-func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (string, error) {
+func (s *ticketsServ) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (string, error) {
 	user, err := s.repo.User(ctx, req.UserEmail)
 	if err != nil {
 		return "", err
@@ -157,7 +207,7 @@ func (s *serv) BuyTicket(ctx context.Context, req *models.BuyTicketRequest) (str
 	return respPayment.Confirmation.ConfirmationURL, nil
 }
 
-func (s *serv) createTicket(ctx context.Context, ticket *models.Ticket) error {
+func (s *ticketsServ) createTicket(ctx context.Context, ticket *models.Ticket) error {
 	id, err := s.repo.InsertTicket(ctx, ticket)
 	if err != nil {
 		return err
@@ -176,7 +226,7 @@ func (s *serv) createTicket(ctx context.Context, ticket *models.Ticket) error {
 	return nil
 }
 
-func (s *serv) Ticket(ctx context.Context, ticketID string) (*models.Ticket, error) {
+func (s *ticketsServ) Ticket(ctx context.Context, ticketID string) (*models.Ticket, error) {
 	ticket, err := s.repo.Ticket(ctx, ticketID)
 	if err != nil {
 		return nil, err
@@ -185,7 +235,7 @@ func (s *serv) Ticket(ctx context.Context, ticketID string) (*models.Ticket, err
 	return ticket, nil
 }
 
-func (s *serv) UserTickets(ctx context.Context, userID int64) ([]*models.Ticket, error) {
+func (s *ticketsServ) UserTickets(ctx context.Context, userID int64) ([]*models.Ticket, error) {
 	tickets, err := s.repo.UserTickets(ctx, userID)
 	if err != nil {
 		return nil, err

@@ -18,7 +18,9 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/postgres"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
-	"github.com/wDRxxx/eventflow-backend/internal/service/apiService"
+	"github.com/wDRxxx/eventflow-backend/internal/service/eventsService"
+	"github.com/wDRxxx/eventflow-backend/internal/service/ticketsService"
+	"github.com/wDRxxx/eventflow-backend/internal/service/usersService"
 )
 
 type serviceProvider struct {
@@ -29,8 +31,11 @@ type serviceProvider struct {
 	metricsConfig  *config.MetricsConfig
 
 	repository repository.Repository
-	apiService service.ApiService
 	httpServer api.HTTPServer
+
+	eventsService  service.EventsService
+	ticketsService service.TicketsService
+	usersService   service.UsersService
 
 	mailer mailer.Mailer
 }
@@ -101,22 +106,43 @@ func (s *serviceProvider) Repository(ctx context.Context) repository.Repository 
 	return s.repository
 }
 
-func (s *serviceProvider) ApiService(ctx context.Context, wg *sync.WaitGroup) service.ApiService {
-	if s.apiService == nil {
-		s.apiService = apiService.NewApiService(
+func (s *serviceProvider) EventsService(ctx context.Context) service.EventsService {
+	if s.eventsService == nil {
+		s.eventsService = eventsService.NewEventsService(s.Repository(ctx))
+	}
+
+	return s.eventsService
+}
+
+func (s *serviceProvider) TicketsService(ctx context.Context, wg *sync.WaitGroup) service.TicketsService {
+	if s.ticketsService == nil {
+		s.ticketsService = ticketsService.NewTicketsService(
 			wg,
 			s.Repository(ctx),
-			s.AuthConfig(),
 			s.Mailer(wg),
 		)
 	}
 
-	return s.apiService
+	return s.ticketsService
+}
+
+func (s *serviceProvider) UsersService(ctx context.Context) service.UsersService {
+	if s.usersService == nil {
+		s.usersService = usersService.NewUsersService(s.Repository(ctx), s.AuthConfig())
+	}
+
+	return s.usersService
 }
 
 func (s *serviceProvider) HTTPServer(ctx context.Context, wg *sync.WaitGroup) api.HTTPServer {
 	if s.httpServer == nil {
-		s.httpServer = httpServer.NewHTTPServer(s.ApiService(ctx, wg), s.AuthConfig(), s.HttpConfig())
+		s.httpServer = httpServer.NewHTTPServer(
+			s.AuthConfig(),
+			s.HttpConfig(),
+			s.EventsService(ctx),
+			s.TicketsService(ctx, wg),
+			s.UsersService(ctx),
+		)
 	}
 
 	return s.httpServer

@@ -14,20 +14,28 @@ import (
 type server struct {
 	mux http.Handler
 
-	apiService service.ApiService
 	authConfig *config.AuthConfig
 	httpConfig *config.HttpConfig
+
+	eventsService  service.EventsService
+	ticketsService service.TicketsService
+	usersService   service.UsersService
 }
 
 func NewHTTPServer(
-	apiService service.ApiService,
 	authConfig *config.AuthConfig,
 	httpConfig *config.HttpConfig,
+
+	eventsService service.EventsService,
+	ticketsService service.TicketsService,
+	usersService service.UsersService,
 ) api.HTTPServer {
 	s := &server{
-		apiService: apiService,
-		authConfig: authConfig,
-		httpConfig: httpConfig,
+		authConfig:     authConfig,
+		httpConfig:     httpConfig,
+		eventsService:  eventsService,
+		ticketsService: ticketsService,
+		usersService:   usersService,
 	}
 
 	s.setRoutes()

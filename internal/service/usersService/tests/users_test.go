@@ -13,14 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/wDRxxx/eventflow-backend/internal/service/usersService"
+
 	"github.com/wDRxxx/eventflow-backend/internal/closer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
-	"github.com/wDRxxx/eventflow-backend/internal/mailer/smtp"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/mocks"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
-	"github.com/wDRxxx/eventflow-backend/internal/service/apiService"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
 )
 
@@ -34,9 +34,7 @@ func TestRegisterUser(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
+		authCfg = config.NewAuthConfig()
 
 		repoErr = errors.New("repo err")
 
@@ -89,7 +87,7 @@ func TestRegisterUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := usersService.NewUsersService(repositoryMock, authCfg)
 			err := service.RegisterUser(ctx, user)
 
 			require.Equal(t, tt.err, err)
@@ -107,9 +105,7 @@ func TestLogin(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
+		authCfg = config.NewAuthConfig()
 
 		repoErr = errors.New("repo err")
 
@@ -172,7 +168,7 @@ func TestLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := usersService.NewUsersService(repositoryMock, authCfg)
 			_, err := service.Login(ctx, user)
 
 			require.Equal(t, tt.err, err)
@@ -190,9 +186,7 @@ func TestAccessToken(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
+		authCfg = config.NewAuthConfig()
 
 		repoErr = errors.New("repo err")
 
@@ -242,7 +236,7 @@ func TestAccessToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := usersService.NewUsersService(repositoryMock, authCfg)
 			_, err := service.AccessToken(ctx, tt.token)
 
 			if tt.err != nil {
@@ -264,9 +258,7 @@ func TestUser(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
+		authCfg = config.NewAuthConfig()
 
 		repoErr = errors.New("repo err")
 
@@ -316,7 +308,7 @@ func TestUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := usersService.NewUsersService(repositoryMock, authCfg)
 			u, err := service.User(ctx, userEmail)
 
 			require.Equal(t, tt.want, u)
@@ -335,9 +327,7 @@ func TestUpdateUser(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
-		mailerCfg = config.NewMailerConfig()
-		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
+		authCfg = config.NewAuthConfig()
 
 		repoErr = errors.New("repo err")
 
@@ -400,7 +390,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := usersService.NewUsersService(repositoryMock, authCfg)
 			err := service.UpdateUser(ctx, user)
 
 			require.Equal(t, tt.err, err)

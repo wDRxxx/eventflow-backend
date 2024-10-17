@@ -17,7 +17,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/models"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/mocks"
-	"github.com/wDRxxx/eventflow-backend/internal/service/apiService"
+	"github.com/wDRxxx/eventflow-backend/internal/service/ticketsService"
 )
 
 func _TestBuyTicket(t *testing.T) {
@@ -30,7 +30,6 @@ func _TestBuyTicket(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
@@ -105,7 +104,7 @@ func _TestBuyTicket(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := ticketsService.NewTicketsService(wg, repositoryMock, mail)
 			id, err := service.BuyTicket(ctx, req)
 
 			require.Equal(t, tt.want, id)
@@ -124,7 +123,6 @@ func TestTicket(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
@@ -175,7 +173,7 @@ func TestTicket(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := ticketsService.NewTicketsService(wg, repositoryMock, mail)
 			ticket, err := service.Ticket(ctx, ticketID)
 
 			require.Equal(t, tt.want, ticket)
@@ -194,7 +192,6 @@ func TestUserTickets(t *testing.T) {
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		authCfg   = config.NewAuthConfig()
 		mailerCfg = config.NewMailerConfig()
 		mail, _   = smtp.NewSMTPMailer(mailerCfg, wg)
 
@@ -249,7 +246,7 @@ func TestUserTickets(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repositoryMock := tt.repositoryMock(mc)
 
-			service := apiService.NewApiService(wg, repositoryMock, authCfg, mail)
+			service := ticketsService.NewTicketsService(wg, repositoryMock, mail)
 			ticket, err := service.UserTickets(ctx, userID)
 
 			require.Equal(t, tt.want, ticket)

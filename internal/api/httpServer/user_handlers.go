@@ -30,7 +30,7 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.apiService.RegisterUser(r.Context(), &user)
+	err = s.usersService.RegisterUser(r.Context(), &user)
 	if err != nil {
 		if errors.Is(err, service.ErrUserAlreadyExists) {
 			utils.WriteJSONError(err, w, http.StatusConflict)
@@ -64,7 +64,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, err := s.apiService.Login(r.Context(), &user)
+	refreshToken, err := s.usersService.Login(r.Context(), &user)
 	if err != nil {
 		if errors.Is(err, service.ErrWrongCredentials) {
 			utils.WriteJSONError(err, w, http.StatusUnauthorized)
@@ -75,7 +75,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(api.ErrInternal, w)
 		return
 	}
-	accessToken, err := s.apiService.AccessToken(r.Context(), refreshToken)
+	accessToken, err := s.usersService.AccessToken(r.Context(), refreshToken)
 	if err != nil {
 		slog.Error("Error getting access token", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)
@@ -105,7 +105,7 @@ func (s *server) refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := s.apiService.AccessToken(r.Context(), refreshToken.Value)
+	accessToken, err := s.usersService.AccessToken(r.Context(), refreshToken.Value)
 	if err != nil {
 		slog.Error("Error getting access token", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)
@@ -139,7 +139,7 @@ func (s *server) profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.apiService.User(r.Context(), claims.Email)
+	user, err := s.usersService.User(r.Context(), claims.Email)
 	if err != nil {
 		slog.Error("Error getting user", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)
@@ -173,7 +173,7 @@ func (s *server) updateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	user.ID = int64(id)
 
-	err = s.apiService.UpdateUser(r.Context(), &user)
+	err = s.usersService.UpdateUser(r.Context(), &user)
 	if err != nil {
 		slog.Error("Error updating user", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)

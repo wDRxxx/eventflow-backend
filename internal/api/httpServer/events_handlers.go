@@ -18,7 +18,7 @@ import (
 
 func (s *server) event(w http.ResponseWriter, r *http.Request) {
 	urlTitle := chi.URLParam(r, "url-title")
-	resp, err := s.apiService.Event(r.Context(), urlTitle)
+	resp, err := s.eventsService.Event(r.Context(), urlTitle)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -42,7 +42,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := s.apiService.Events(r.Context(), page)
+	events, err := s.eventsService.Events(r.Context(), page)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			slog.Error("Error getting events", slog.Any("error", err))
@@ -68,7 +68,7 @@ func (s *server) myEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := s.apiService.UserEvents(r.Context(), int64(id))
+	events, err := s.eventsService.UserEvents(r.Context(), int64(id))
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			slog.Error("Error getting events", slog.Any("error", err))
@@ -133,7 +133,7 @@ func (s *server) createEvent(w http.ResponseWriter, r *http.Request) {
 
 	event.CreatorID = int64(id)
 
-	_, err = s.apiService.CreateEvent(r.Context(), &event)
+	_, err = s.eventsService.CreateEvent(r.Context(), &event)
 	if err != nil {
 		if errors.Is(err, service.ErrNoPrices) || errors.Is(err, service.ErrPricesForFree) {
 			utils.WriteJSONError(err, w)
@@ -186,7 +186,7 @@ func (s *server) updateEvent(w http.ResponseWriter, r *http.Request) {
 		event.PreviewImage = imgs[0]
 	}
 
-	err = s.apiService.UpdateEvent(r.Context(), int64(id), &event)
+	err = s.eventsService.UpdateEvent(r.Context(), int64(id), &event)
 	if err != nil {
 		slog.Error("Error updating event", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)
@@ -209,7 +209,7 @@ func (s *server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(claims.Subject)
 
 	urlTitle := chi.URLParam(r, "url-title")
-	err = s.apiService.DeleteEvent(r.Context(), int64(id), urlTitle)
+	err = s.eventsService.DeleteEvent(r.Context(), int64(id), urlTitle)
 	if err != nil {
 		if errors.Is(err, service.ErrPermissionDenied) {
 			utils.WriteJSONError(service.ErrPermissionDenied, w, http.StatusForbidden)

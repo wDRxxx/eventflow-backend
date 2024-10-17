@@ -24,7 +24,7 @@ func (s *server) userTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tickets, err := s.apiService.UserTickets(r.Context(), int64(id))
+	tickets, err := s.ticketsService.UserTickets(r.Context(), int64(id))
 	if err != nil {
 		slog.Error("Error getting tickets", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)
@@ -52,7 +52,7 @@ func (s *server) buyTicket(w http.ResponseWriter, r *http.Request) {
 
 	req.UserEmail = claims.Email
 
-	url, err := s.apiService.BuyTicket(r.Context(), &req)
+	url, err := s.ticketsService.BuyTicket(r.Context(), &req)
 	if err != nil {
 		slog.Error("Error buying ticket", slog.Any("error", err))
 		utils.WriteJSONError(api.ErrInternal, w)

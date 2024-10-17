@@ -26,7 +26,7 @@ import (
 func TestUserTickets(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.TicketsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -68,8 +68,8 @@ func TestUserTickets(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusUnauthorized,
 			isAuthorized: false,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.TicketsService {
+				mock := mocks.NewTicketsServiceMock(mc)
 				return mock
 			},
 		},
@@ -78,8 +78,8 @@ func TestUserTickets(t *testing.T) {
 			want:         tickets,
 			statusCode:   http.StatusOK,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.TicketsService {
+				mock := mocks.NewTicketsServiceMock(mc)
 				mock.UserTicketsMock.Expect(minimock.AnyContext, userID).Return(tickets, nil)
 				return mock
 			},
@@ -89,8 +89,8 @@ func TestUserTickets(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusInternalServerError,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.TicketsService {
+				mock := mocks.NewTicketsServiceMock(mc)
 				mock.UserTicketsMock.Expect(minimock.AnyContext, userID).Return(nil, serviceErr)
 				return mock
 			},
@@ -103,9 +103,12 @@ func TestUserTickets(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				apiServiceMock,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
@@ -136,7 +139,7 @@ func TestUserTickets(t *testing.T) {
 func TestBuyTicket(t *testing.T) {
 	t.Parallel()
 
-	type apiServiceMockFunc func(mc *minimock.Controller) service.ApiService
+	type apiServiceMockFunc func(mc *minimock.Controller) service.TicketsService
 
 	var (
 		authCfg = config.NewAuthConfig()
@@ -180,8 +183,8 @@ func TestBuyTicket(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusUnauthorized,
 			isAuthorized: false,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.TicketsService {
+				mock := mocks.NewTicketsServiceMock(mc)
 				return mock
 			},
 		},
@@ -193,8 +196,8 @@ func TestBuyTicket(t *testing.T) {
 			},
 			statusCode:   http.StatusOK,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.TicketsService {
+				mock := mocks.NewTicketsServiceMock(mc)
 				mock.BuyTicketMock.Expect(minimock.AnyContext, request).Return(returnURL, nil)
 				return mock
 			},
@@ -204,8 +207,8 @@ func TestBuyTicket(t *testing.T) {
 			want:         nil,
 			statusCode:   http.StatusInternalServerError,
 			isAuthorized: true,
-			apiServiceMock: func(mc *minimock.Controller) service.ApiService {
-				mock := mocks.NewApiServiceMock(mc)
+			apiServiceMock: func(mc *minimock.Controller) service.TicketsService {
+				mock := mocks.NewTicketsServiceMock(mc)
 				mock.BuyTicketMock.Expect(minimock.AnyContext, request).Return("", serviceErr)
 				return mock
 			},
@@ -218,9 +221,12 @@ func TestBuyTicket(t *testing.T) {
 			apiServiceMock := tt.apiServiceMock(mc)
 
 			api := httpServer.NewHTTPServer(
-				apiServiceMock,
 				authCfg,
-				httpCfg)
+				httpCfg,
+				nil,
+				apiServiceMock,
+				nil,
+			)
 
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
