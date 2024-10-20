@@ -19,6 +19,8 @@ type User struct {
 
 	CreatedAt time.Time `json:"-" db:"created_at"`
 	UpdatedAt time.Time `json:"-" db:"updated_at"`
+
+	IsOAuth bool `json:"-" db:"-"`
 }
 
 type UserClaims struct {

@@ -7,6 +7,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/api"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
+	"github.com/wDRxxx/eventflow-backend/internal/oauth"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
 )
@@ -20,15 +21,17 @@ type server struct {
 	eventsService  service.EventsService
 	ticketsService service.TicketsService
 	usersService   service.UsersService
+
+	oauth *oauth.OAuth
 }
 
 func NewHTTPServer(
 	authConfig *config.AuthConfig,
 	httpConfig *config.HttpConfig,
-
 	eventsService service.EventsService,
 	ticketsService service.TicketsService,
 	usersService service.UsersService,
+	oauth *oauth.OAuth,
 ) api.HTTPServer {
 	s := &server{
 		authConfig:     authConfig,
@@ -36,6 +39,7 @@ func NewHTTPServer(
 		eventsService:  eventsService,
 		ticketsService: ticketsService,
 		usersService:   usersService,
+		oauth:          oauth,
 	}
 
 	s.setRoutes()

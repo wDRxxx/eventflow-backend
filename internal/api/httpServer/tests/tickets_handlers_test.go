@@ -18,6 +18,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
+	"github.com/wDRxxx/eventflow-backend/internal/oauth"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 	"github.com/wDRxxx/eventflow-backend/internal/service/mocks"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
@@ -29,8 +30,11 @@ func TestUserTickets(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.TicketsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -108,6 +112,7 @@ func TestUserTickets(t *testing.T) {
 				nil,
 				apiServiceMock,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -142,8 +147,11 @@ func TestBuyTicket(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.TicketsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -226,6 +234,7 @@ func TestBuyTicket(t *testing.T) {
 				nil,
 				apiServiceMock,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())

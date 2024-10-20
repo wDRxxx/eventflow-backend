@@ -15,6 +15,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/mailer"
 	"github.com/wDRxxx/eventflow-backend/internal/mailer/smtp"
+	"github.com/wDRxxx/eventflow-backend/internal/oauth"
 	"github.com/wDRxxx/eventflow-backend/internal/repository"
 	"github.com/wDRxxx/eventflow-backend/internal/repository/postgres"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
@@ -29,6 +30,7 @@ type serviceProvider struct {
 	authConfig     *config.AuthConfig
 	mailerConfig   *config.MailerConfig
 	metricsConfig  *config.MetricsConfig
+	oauthConfig    *config.OAuthConfig
 
 	repository repository.Repository
 	httpServer api.HTTPServer
@@ -38,6 +40,8 @@ type serviceProvider struct {
 	usersService   service.UsersService
 
 	mailer mailer.Mailer
+
+	oauth *oauth.OAuth
 }
 
 func newServiceProvider() *serviceProvider {
@@ -81,6 +85,14 @@ func (s *serviceProvider) MetricsConfig() *config.MetricsConfig {
 	}
 
 	return s.metricsConfig
+}
+
+func (s *serviceProvider) OAuthConfig() *config.OAuthConfig {
+	if s.oauthConfig == nil {
+		s.oauthConfig = config.NewOAuthConfig()
+	}
+
+	return s.oauthConfig
 }
 
 func (s *serviceProvider) Repository(ctx context.Context) repository.Repository {
@@ -142,6 +154,7 @@ func (s *serviceProvider) HTTPServer(ctx context.Context, wg *sync.WaitGroup) ap
 			s.EventsService(ctx),
 			s.TicketsService(ctx, wg),
 			s.UsersService(ctx),
+			s.OAuth(),
 		)
 	}
 
@@ -159,4 +172,12 @@ func (s *serviceProvider) Mailer(wg *sync.WaitGroup) mailer.Mailer {
 	}
 
 	return s.mailer
+}
+
+func (s *serviceProvider) OAuth() *oauth.OAuth {
+	if s.oauth == nil {
+		s.oauth = oauth.NewOAuth(s.OAuthConfig())
+	}
+
+	return s.oauth
 }

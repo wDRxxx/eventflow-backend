@@ -12,7 +12,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/metrics"
 )
 
-var errInvalidAuthHeader = errors.New("invalid auth header")
+var errInvalidAuthHeader = errors.New("invalid oauth header")
 
 func (s *server) enableCORS(next http.Handler) http.Handler {
 	return cors.New(cors.Options{

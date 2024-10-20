@@ -19,6 +19,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
+	"github.com/wDRxxx/eventflow-backend/internal/oauth"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 	"github.com/wDRxxx/eventflow-backend/internal/service/mocks"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
@@ -29,8 +30,11 @@ func TestEvents(t *testing.T) {
 
 	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx  = context.Background()
 		mc   = minimock.NewController(t)
@@ -112,8 +116,8 @@ func TestEvents(t *testing.T) {
 				apiServiceMock,
 				nil,
 				nil,
+				oauth,
 			)
-
 			server := httptest.NewServer(api.Handler())
 			defer server.Close()
 
@@ -155,8 +159,11 @@ func TestMyEvents(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx       = context.Background()
 		mc        = minimock.NewController(t)
@@ -247,6 +254,7 @@ func TestMyEvents(t *testing.T) {
 				apiServiceMock,
 				nil,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -284,8 +292,11 @@ func TestEvent(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx      = context.Background()
 		mc       = minimock.NewController(t)
@@ -362,6 +373,7 @@ func TestEvent(t *testing.T) {
 				apiServiceMock,
 				nil,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -392,8 +404,11 @@ func TestCreateEvent(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx       = context.Background()
 		mc        = minimock.NewController(t)
@@ -514,6 +529,7 @@ func TestCreateEvent(t *testing.T) {
 				apiServiceMock,
 				nil,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -557,8 +573,11 @@ func TestUpdateEvent(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx       = context.Background()
 		mc        = minimock.NewController(t)
@@ -649,6 +668,7 @@ func TestUpdateEvent(t *testing.T) {
 				apiServiceMock,
 				nil,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -692,8 +712,11 @@ func TestDeleteEvent(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.EventsService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx       = context.Background()
 		mc        = minimock.NewController(t)
@@ -784,6 +807,7 @@ func TestDeleteEvent(t *testing.T) {
 				apiServiceMock,
 				nil,
 				nil,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())

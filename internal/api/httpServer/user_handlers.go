@@ -75,12 +75,6 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(api.ErrInternal, w)
 		return
 	}
-	accessToken, err := s.usersService.AccessToken(r.Context(), refreshToken)
-	if err != nil {
-		slog.Error("Error getting access token", slog.Any("error", err))
-		utils.WriteJSONError(api.ErrInternal, w)
-		return
-	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
@@ -92,9 +86,9 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
-	utils.WriteJSON(&models.TokenPair{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+	utils.WriteJSON(&models.DefaultResponse{
+		Message: "logged in",
+		Error:   false,
 	}, w)
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/wDRxxx/eventflow-backend/internal/api/httpServer"
 	"github.com/wDRxxx/eventflow-backend/internal/config"
 	"github.com/wDRxxx/eventflow-backend/internal/models"
+	"github.com/wDRxxx/eventflow-backend/internal/oauth"
 	"github.com/wDRxxx/eventflow-backend/internal/service"
 	"github.com/wDRxxx/eventflow-backend/internal/service/mocks"
 	"github.com/wDRxxx/eventflow-backend/internal/utils"
@@ -29,8 +30,11 @@ func TestRegister(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -117,6 +121,7 @@ func TestRegister(t *testing.T) {
 				nil,
 				nil,
 				apiServiceMock,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -150,8 +155,11 @@ func TestLogin(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -171,12 +179,11 @@ func TestLogin(t *testing.T) {
 		}
 
 		refreshToken = "refresh"
-		accessToken  = "access"
 	)
 
 	tests := []struct {
 		name       string
-		want       *models.TokenPair
+		want       *models.DefaultResponse
 		statusCode int
 		user       *models.User
 
@@ -184,16 +191,15 @@ func TestLogin(t *testing.T) {
 	}{
 		{
 			name: "success case",
-			want: &models.TokenPair{
-				AccessToken:  accessToken,
-				RefreshToken: refreshToken,
+			want: &models.DefaultResponse{
+				Message: "logged in",
+				Error:   false,
 			},
 			user:       user,
 			statusCode: http.StatusOK,
 			apiServiceMock: func(mc *minimock.Controller) service.UsersService {
 				mock := mocks.NewUsersServiceMock(mc)
 				mock.LoginMock.Expect(minimock.AnyContext, user).Return(refreshToken, nil)
-				mock.AccessTokenMock.Expect(minimock.AnyContext, refreshToken).Return(accessToken, nil)
 				return mock
 			},
 		},
@@ -231,6 +237,7 @@ func TestLogin(t *testing.T) {
 				nil,
 				nil,
 				apiServiceMock,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -249,7 +256,8 @@ func TestLogin(t *testing.T) {
 
 			resp, _ := server.Client().Do(req)
 			require.Equal(t, tt.statusCode, resp.StatusCode)
-			var res *models.TokenPair
+
+			var res *models.DefaultResponse
 			if tt.want != nil {
 				_ = json.NewDecoder(resp.Body).Decode(&res)
 			}
@@ -264,8 +272,11 @@ func TestRefresh(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -334,6 +345,7 @@ func TestRefresh(t *testing.T) {
 				nil,
 				nil,
 				apiServiceMock,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -369,8 +381,11 @@ func TestLogout(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -407,6 +422,7 @@ func TestLogout(t *testing.T) {
 				nil,
 				nil,
 				apiServiceMock,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -432,8 +448,11 @@ func TestProfile(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -508,6 +527,7 @@ func TestProfile(t *testing.T) {
 				nil,
 				nil,
 				apiServiceMock,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())
@@ -541,8 +561,11 @@ func TestUpdateProfile(t *testing.T) {
 	type apiServiceMockFunc func(mc *minimock.Controller) service.UsersService
 
 	var (
-		authCfg = config.NewAuthConfig()
-		httpCfg = config.NewHttpConfig()
+		authCfg  = config.NewAuthConfig()
+		httpCfg  = config.NewHttpConfig()
+		oauthCfg = config.NewOAuthConfig()
+
+		oauth = oauth.NewOAuth(oauthCfg)
 
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
@@ -621,6 +644,7 @@ func TestUpdateProfile(t *testing.T) {
 				nil,
 				nil,
 				apiServiceMock,
+				oauth,
 			)
 
 			server := httptest.NewServer(api.Handler())

@@ -37,11 +37,15 @@ func (s *usersServ) RegisterUser(ctx context.Context, user *models.User) error {
 		return service.ErrUserAlreadyExists
 	}
 
-	pass, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
-	if err != nil {
-		return err
+	if !user.IsOAuth {
+		pass, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+		if err != nil {
+			return err
+		}
+		user.Password = string(pass)
+	} else {
+		user.Password = " "
 	}
-	user.Password = string(pass)
 
 	_, err = s.repo.InsertUser(ctx, user)
 	if err != nil {
@@ -57,9 +61,11 @@ func (s *usersServ) Login(ctx context.Context, user *models.User) (string, error
 		return "", service.ErrWrongCredentials
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
-	if err != nil {
-		return "", service.ErrWrongCredentials
+	if !user.IsOAuth {
+		err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
+		if err != nil {
+			return "", service.ErrWrongCredentials
+		}
 	}
 
 	accessToken, err := utils.GenerateToken(

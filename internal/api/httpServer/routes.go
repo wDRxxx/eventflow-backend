@@ -42,6 +42,11 @@ func (s *server) setRoutes() {
 			mux.Post("/login", s.login)
 			mux.Post("/refresh", s.refresh)
 			mux.Post("/logout", s.logout)
+
+			mux.Route("/oauth/{provider}", func(mux chi.Router) {
+				mux.Get("/callback", s.oauthCallback)
+				mux.Get("/", s.oauthLogin)
+			})
 		})
 
 		mux.Route("/user", func(mux chi.Router) {
@@ -54,7 +59,6 @@ func (s *server) setRoutes() {
 				mux.Put("/", s.updateProfile)
 			})
 		})
-
 	})
 
 	s.mux = mux

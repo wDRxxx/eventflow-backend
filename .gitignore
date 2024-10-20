@@ -2,5 +2,6 @@
 /prod.env
 /logs
 /static
+coverage.tmp.out
 coverage.out
 coverage.html
