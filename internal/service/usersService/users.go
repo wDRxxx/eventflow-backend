@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
@@ -44,7 +45,7 @@ func (s *usersServ) RegisterUser(ctx context.Context, user *models.User) error {
 		}
 		user.Password = string(pass)
 	} else {
-		user.Password = " "
+		user.Password = gofakeit.Password(true, true, true, true, false, 20)
 	}
 
 	_, err = s.repo.InsertUser(ctx, user)
